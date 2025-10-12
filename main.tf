@@ -111,7 +111,7 @@ resource "google_compute_instance" "vm" {
   boot_disk {
     initialize_params {
       image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
-      size  = 20
+      size  = 10
       type  = "pd-balanced"
     }
   }
