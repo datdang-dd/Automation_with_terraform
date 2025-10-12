@@ -1,5 +1,4 @@
 # ======================== main.tf ========================
-# test webhook trigger
 
 terraform {
   required_version = ">= 1.6.0"
