@@ -27,19 +27,19 @@ provider "google" {
 
 # Network (VPC, Subnet, Firewall)
 resource "google_compute_network" "vpc" {
-  name                    = "demo-vpc"
+  name                    = "demo1-vpc"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "subnet" {
-  name          = "demo-subnet"
+  name          = "demo1-subnet"
   ip_cidr_range = var.subnet_cidr
   region        = var.region
   network       = google_compute_network.vpc.id
 }
 
 resource "google_compute_firewall" "allow_ssh" {
-  name    = "allow-ssh"
+  name    = "allow-ssh1"
   network = google_compute_network.vpc.name
 
   allow {
@@ -52,7 +52,7 @@ resource "google_compute_firewall" "allow_ssh" {
 }
 
 resource "google_compute_firewall" "allow_http" {
-  name    = "allow-http"
+  name    = "allow-http1"
   network = google_compute_network.vpc.name
 
   allow {
@@ -65,7 +65,7 @@ resource "google_compute_firewall" "allow_http" {
 }
 
 resource "google_compute_firewall" "allow_https" {
-  name    = "allow-https"
+  name    = "allow-https1"
   network = google_compute_network.vpc.name
 
   allow {
@@ -83,7 +83,7 @@ resource "random_id" "suffix" {
 }
 
 locals {
-  resolved_bucket_name = coalesce(var.bucket_name, "demo-tf-bucket-${var.project_id}-${random_id.suffix.hex}")
+  resolved_bucket_name = coalesce(var.bucket_name, "demo1-tf-bucket-${var.project_id}-${random_id.suffix.hex}")
 }
 
 resource "google_storage_bucket" "bucket" {
@@ -111,7 +111,7 @@ resource "google_compute_instance" "vm" {
   boot_disk {
     initialize_params {
       image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
-      size  = 10
+      size  = 20
       type  = "pd-balanced"
     }
   }
@@ -125,5 +125,5 @@ resource "google_compute_instance" "vm" {
     ssh-keys = var.ssh_public_key
   } : null
 
-  tags = ["allow-ssh", "allow-http", "allow-https"]
+  tags = ["allow-ssh1", "allow-http1", "allow-https1"]
 }
