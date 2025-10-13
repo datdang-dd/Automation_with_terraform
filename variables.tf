@@ -51,3 +51,9 @@ variable "ssh_public_key" {
   type        = string
   default     = ""
 }
+
+variable "downloader_emails" {
+  description = "List of emails that have access to download/upload/delete objects in the bucket"
+  type        = list(string)
+  default     = []
+}
