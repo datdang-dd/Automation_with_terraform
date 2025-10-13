@@ -1,6 +1,13 @@
 variable "project_id" { type = string }
-variable "sa_id"      { type = string }
+variable "sa_id"      { 
+    type = string 
+    default = "vm-service-account"
+}
 variable "sa_roles"   { 
     type = list(string) 
-    default = [] 
+    default = [
+        "roles/logging.logWriter",
+        "roles/monitoring.metricWriter",
+        "roles/storage.objectViewer"
+    ] 
 }
