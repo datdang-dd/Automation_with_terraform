@@ -128,3 +128,12 @@ resource "google_compute_instance" "vm" {
 
   tags = ["allow-ssh1", "allow-http1", "allow-https1"]
 }
+
+# IAM binding: cho phép 2 người truy cập và quản lý object trong bucket
+resource "google_storage_bucket_iam_binding" "bucket_access" {
+  bucket = google_storage_bucket.bucket.name
+  role   = "roles/storage.objectAdmin"   # cho phép upload, download, delete object
+  members = [
+    for email in var.downloader_emails : "user:${email}"
+  ]
+}
