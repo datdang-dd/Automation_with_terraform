@@ -1,59 +1,47 @@
-# ======================== variables.tf ========================
-variable "project_id" {
-  description = "GCP Project ID"
-  type        = string
+variable "project_id" { type = string }
+
+variable "region"     { 
+  type = string
+  default = "us-central1" 
+}
+variable "zone"       { 
+  type = string
+  default = "us-central1-b" 
 }
 
-variable "region" {
-  description = "Default GCP region"
-  type        = string
-  default     = "us-central1"
+variable "subnet_cidr" { 
+  type = string
+  default = "10.10.1.0/24" 
+}
+variable "ssh_cidr"    { 
+  type = list(string)
+  default = ["0.0.0.0/0"] 
 }
 
-variable "zone" {
-  description = "Default GCP zone"
-  type        = string
-  default     = "us-central1-b"
+variable "machine_type"   { 
+  type = string
+  default = "e2-micro" 
+}
+variable "ssh_public_key" { 
+  type = string
+  default = "" 
+}    # nội dung .pub
+
+variable "bucket_name"       { 
+  type = string
+  default = null 
+}
+variable "downloader_emails" { 
+  type = list(string)
+  default = [] 
 }
 
-variable "network_cidr" {
-  description = "CIDR for the VPC primary range"
-  type        = string
-  default     = "10.10.0.0/16"
-}
+variable "domain" { 
+  type = string
+  default = "" 
+}  # app.example.com (nếu cần HTTPS)
 
-variable "subnet_cidr" {
-  description = "CIDR for the subnet"
-  type        = string
-  default     = "10.10.1.0/24"
-}
-
-variable "bucket_name" {
-  description = "Name for the GCS bucket (must be globally unique)"
-  type        = string
-  default     = null
-}
-
-variable "vm_name" {
-  description = "VM instance name"
-  type        = string
-  default     = "demo-vm"
-}
-
-variable "machine_type" {
-  description = "GCE machine type"
-  type        = string
-  default     = "e2-micro"
-}
-
-variable "ssh_public_key" {
-  description = "SSH public key to inject for login"
-  type        = string
-  default     = ""
-}
-
-variable "downloader_emails" {
-  description = "List of emails that have access to download/upload/delete objects in the bucket"
-  type        = list(string)
-  default     = []
-}
+variable "uptime_host" { 
+  type = string
+  default = "" 
+}  # để override nếu muốn
