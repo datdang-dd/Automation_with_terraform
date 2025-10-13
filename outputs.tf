@@ -1,20 +1,10 @@
-# ======================== outputs.tf ========================
-output "bucket_name" {
-  value       = google_storage_bucket.bucket.name
-  description = "Created GCS bucket name"
-}
+output "vpc_name"          { value = module.network.vpc_name }
+output "subnet_name"       { value = module.network.subnet_name }
+output "subnet_self_link"  { value = module.network.subnet_self_link }
 
-output "vm_external_ip" {
-  value       = google_compute_instance.vm.network_interface[0].access_config[0].nat_ip
-  description = "VM external IP"
-}
+output "mig_name"          { value = module.compute.mig_name }
+output "lb_http_ip"        { value = module.lb.lb_http_ip }
+output "lb_https_ip"       { value = module.lb.lb_https_ip }
 
-output "vpc_self_link" {
-  value       = google_compute_network.vpc.self_link
-  description = "VPC self link"
-}
-
-output "subnet_self_link" {
-  value       = google_compute_subnetwork.subnet.self_link
-  description = "Subnet self link"
-}
+output "bucket_name"       { value = module.storage.bucket_name }
+output "service_account"   { value = module.security.sa_email }

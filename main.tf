@@ -1,22 +1,14 @@
-# ======================== main.tf ========================
-
 terraform {
   required_version = ">= 1.6.0"
 
   cloud {
-    organization = "test_terraform_spi"           # <-- edit
-    workspaces { name = "test_workspace" }  # <-- edit
+    organization = "test_terraform_spi"
+    workspaces { name = "test_workspace" }
   }
 
   required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.40"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.6"
-    }
+    google = { source = "hashicorp/google", version = "~> 5.40" }
+    random = { source = "hashicorp/random", version = "~> 3.6" }
   }
 }
 
@@ -26,114 +18,60 @@ provider "google" {
   zone    = var.zone
 }
 
-# Network (VPC, Subnet, Firewall)
-resource "google_compute_network" "vpc" {
-  name                    = "demo1-vpc"
-  auto_create_subnetworks = false
+# 1) Network (VPC + Subnet + Router/NAT + FW)
+module "network" {
+  source      = "./modules/network"
+  project_id  = var.project_id
+  region      = var.region
+  vpc_name    = "demo1-vpc"
+  subnet_name = "demo1-subnet"
+  subnet_cidr = var.subnet_cidr
+  ssh_cidr    = var.ssh_cidr
 }
 
-resource "google_compute_subnetwork" "subnet" {
-  name          = "demo1-subnet"
-  ip_cidr_range = var.subnet_cidr
-  region        = var.region
-  network       = google_compute_network.vpc.id
+# 2) Security (Service Account + minimal IAM)
+module "security" {
+  source      = "./modules/security"
+  project_id  = var.project_id
+  sa_id       = "sa-web"
+  sa_roles    = ["roles/storage.objectViewer"] # có thể thêm/giảm
 }
 
-resource "google_compute_firewall" "allow_ssh" {
-  name    = "allow-ssh1"
-  network = google_compute_network.vpc.name
+# 3) Compute (Template + MIG + Autoscaler)
+module "compute" {
+  source         = "./modules/compute"
+  region         = var.region
+  machine_type   = var.machine_type
+  ssh_public_key = var.ssh_public_key
+  preemptible    = var.preemptible
 
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-  direction     = "INGRESS"
+  subnetwork_self_link = module.network.subnet_self_link
+  target_tags          = ["web"]
+  service_account      = module.security.sa_email
+  size_min             = 2
+  size_max             = 6
 }
 
-resource "google_compute_firewall" "allow_http" {
-  name    = "allow-http1"
-  network = google_compute_network.vpc.name
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-  direction     = "INGRESS"
+# 4) Load Balancer (HTTP/HTTPS)
+module "lb" {
+  source       = "./modules/lb"
+  region       = var.region
+  mig_group    = module.compute.mig_instance_group
+  domain       = var.domain        # "" => chỉ tạo HTTP
 }
 
-resource "google_compute_firewall" "allow_https" {
-  name    = "allow-https1"
-  network = google_compute_network.vpc.name
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-  direction     = "INGRESS"
+# 5) Storage (Bucket + IAM)
+module "storage" {
+  source             = "./modules/storage"
+  region             = var.region
+  project_id         = var.project_id
+  bucket_name_opt    = var.bucket_name
+  downloader_emails  = var.downloader_emails
 }
 
-# GCS bucket
-resource "random_id" "suffix" {
-  byte_length = 3
-}
-
-locals {
-  resolved_bucket_name = coalesce(var.bucket_name, "demo1-tf-bucket-${var.project_id}-${random_id.suffix.hex}")
-}
-
-resource "google_storage_bucket" "bucket" {
-  name                        = local.resolved_bucket_name
-  location                    = var.region
-  uniform_bucket_level_access = true
-  public_access_prevention    = "enforced"
-
-  versioning {
-    enabled = true
-  }
-
-  labels = {
-    purpose = "practice"
-    managed = "terraform"
-  }
-}
-
-# Compute instance (Ubuntu)
-resource "google_compute_instance" "vm" {
-  name         = var.vm_name
-  machine_type = var.machine_type
-  zone         = var.zone
-
-  boot_disk {
-    initialize_params {
-      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
-      size  = 20
-      type  = "pd-balanced"
-    }
-  }
-
-  network_interface {
-    subnetwork = google_compute_subnetwork.subnet.id
-    access_config {}
-  }
-
-  metadata = length(var.ssh_public_key) > 0 ? {
-    ssh-keys = var.ssh_public_key
-  } : null
-
-  tags = ["allow-ssh1", "allow-http1", "allow-https1"]
-}
-
-# IAM binding: cho phép 2 người truy cập và quản lý object trong bucket
-resource "google_storage_bucket_iam_binding" "bucket_access" {
-  bucket = google_storage_bucket.bucket.name
-  role   = "roles/storage.objectAdmin"   # cho phép upload, download, delete object
-  members = [
-    for email in var.downloader_emails : "user:${email}"
-  ]
+# 6) Observability (Uptime + Alert)
+module "observability" {
+  source       = "./modules/observability"
+  project_id   = var.project_id
+  uptime_host  = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
 }
