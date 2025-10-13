@@ -23,11 +23,6 @@ resource "google_compute_instance_template" "tpl" {
   metadata = length(var.ssh_public_key) > 0 ? {
     ssh-keys = var.ssh_public_key
   } : null
-
-  scheduling {
-    preemptible       = var.preemptible
-    automatic_restart = !var.preemptible
-  }
 }
 
 resource "google_compute_region_instance_group_manager" "mig" {
@@ -50,3 +45,27 @@ resource "google_compute_region_autoscaler" "as" {
     cpu_utilization { target = 0.6 }
   }
 }
+
+resource "google_compute_instance" "bastion" {
+  name         = "bastion"
+  machine_type = "e2-micro"
+  zone         = var.zone
+
+  boot_disk {
+    initialize_params {
+      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
+    }
+  }
+
+  network_interface {
+    subnetwork = var.subnetwork_self_link
+    access_config {} # cấp public IP
+  }
+
+  metadata = {
+    ssh-keys = var.ssh_public_key
+  }
+
+  tags = ["allow-ssh1"]
+}
+
