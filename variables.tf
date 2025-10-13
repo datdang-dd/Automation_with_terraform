@@ -2,11 +2,11 @@ variable "project_id" { type = string }
 
 variable "region"     { 
   type = string
-  default = "asia-southeast1" 
+  default = "us-central1" 
 }
 variable "zone"       { 
   type = string
-  default = "asia-southeast1-b" 
+  default = "us-central1-b" 
 }
 
 variable "subnet_cidr" { 
@@ -26,6 +26,7 @@ variable "ssh_public_key" {
   type = string
   default = "" 
 }    # nội dung .pub
+
 variable "preemptible"    { 
   type = bool
   default = false 
