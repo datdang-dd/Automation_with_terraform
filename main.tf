@@ -41,9 +41,9 @@ module "security" {
 module "compute" {
   source         = "./modules/compute"
   region         = var.region
+  zone           = var.zone
   machine_type   = var.machine_type
   ssh_public_key = var.ssh_public_key
-  preemptible    = var.preemptible
 
   subnetwork_self_link = module.network.subnet_self_link
   target_tags          = ["web"]

@@ -27,11 +27,6 @@ variable "ssh_public_key" {
   default = "" 
 }    # nội dung .pub
 
-variable "preemptible"    { 
-  type = bool
-  default = false 
-}
-
 variable "bucket_name"       { 
   type = string
   default = null 
