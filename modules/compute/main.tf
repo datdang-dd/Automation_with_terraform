@@ -1,7 +1,7 @@
 resource "google_compute_instance_template" "tpl" {
   name_prefix  = "web-tpl-"
   machine_type = var.machine_type
-  tags         = var.target_tags
+  tags         = var.target_tags          # đảm bảo trong tfvars có ["web"]
 
   service_account {
     email  = var.service_account
@@ -17,21 +17,20 @@ resource "google_compute_instance_template" "tpl" {
   }
 
   network_interface {
-    subnetwork = var.subnetwork_self_link
+    subnetwork = var.subnetwork_self_link # VM MIG dùng IP private
+    # không thêm access_config {} để giữ private
   }
 
-  metadata = length(var.ssh_public_key) > 0 ? {
-    ssh-keys = var.ssh_public_key
-  } : null
+  # !!! chú ý: var.ssh_public_key phải là "ubuntu:<nội_dung gcp_id.pub>"
+  metadata = length(var.ssh_public_key) > 0 ? { ssh-keys = var.ssh_public_key } : null
 }
 
 resource "google_compute_region_instance_group_manager" "mig" {
   name               = "web-mig"
   region             = var.region
   base_instance_name = "web"
-  version {
-    instance_template = google_compute_instance_template.tpl.id
-  }
+
+  version { instance_template = google_compute_instance_template.tpl.id }
   target_size = var.size_min
 }
 
@@ -39,6 +38,7 @@ resource "google_compute_region_autoscaler" "as" {
   name   = "web-as"
   region = var.region
   target = google_compute_region_instance_group_manager.mig.id
+
   autoscaling_policy {
     min_replicas = var.size_min
     max_replicas = var.size_max
@@ -46,6 +46,7 @@ resource "google_compute_region_autoscaler" "as" {
   }
 }
 
+# Bastion có IP PUBLIC và tag "allow-ssh1"
 resource "google_compute_instance" "bastion" {
   name         = "bastion"
   machine_type = "e2-micro"
@@ -59,13 +60,11 @@ resource "google_compute_instance" "bastion" {
 
   network_interface {
     subnetwork = var.subnetwork_self_link
-    access_config {} # cấp public IP
+    access_config {}                      # 👈 cấp public IP cho bastion
   }
 
-  metadata = {
-    ssh-keys = var.ssh_public_key
-  }
+  # giống MIG: cần "ubuntu:<key>"
+  metadata = { ssh-keys = var.ssh_public_key }
 
-  tags = ["allow-ssh1"]
+  tags = ["allow-ssh1"]                   # 👈 khớp firewall allow-ssh-bastion
 }
-

@@ -5,47 +5,65 @@ resource "google_compute_network" "vpc" {
 
 resource "google_compute_subnetwork" "subnet" {
   name          = var.subnet_name
-  ip_cidr_range = var.subnet_cidr
+  ip_cidr_range = var.subnet_cidr         # ví dụ: 10.10.1.0/24
   region        = var.region
   network       = google_compute_network.vpc.id
 }
 
-# Firewall theo tag "web"
-resource "google_compute_firewall" "allow_ssh" {
-  name         = "allow-ssh1"
+# 1) SSH từ máy bạn vào BASTION (target tag: allow-ssh1)
+resource "google_compute_firewall" "allow_ssh_bastion" {
+  name         = "allow-ssh-bastion"
   network      = google_compute_network.vpc.name
-  allow        { 
-    protocol = "tcp" 
-    ports = ["22"] 
-}
-  source_ranges = var.ssh_cidr
   direction    = "INGRESS"
-  target_tags  = ["web"]
+  target_tags  = ["allow-ssh1"]           # 👈 bastion sẽ gắn tag này
+  source_ranges = var.ssh_cidr            # ví dụ: ["<YOUR_PUBLIC_IP>/32"] hoặc ["0.0.0.0/0"] khi test
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
 }
+
+# 2) SSH NỘI BỘ từ BASTION -> các VM WEB trong MIG (target tag: web)
+resource "google_compute_firewall" "allow_ssh_internal" {
+  name         = "allow-ssh-internal"
+  network      = google_compute_network.vpc.name
+  direction    = "INGRESS"
+  target_tags  = ["web"]                  # 👈 áp lên VM trong MIG
+  source_ranges = [var.subnet_cidr]       # 👈 cho phép mọi IP trong subnet (bastion nằm trong đây)
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+}
+
+# HTTP/HTTPS cho web (không đổi)
 resource "google_compute_firewall" "allow_http" {
   name         = "allow-http1"
   network      = google_compute_network.vpc.name
-  allow        { 
-    protocol = "tcp"
-    ports = ["80"] 
-  }
-  source_ranges = ["0.0.0.0/0"]
   direction    = "INGRESS"
   target_tags  = ["web"]
+  source_ranges = ["0.0.0.0/0"]
+  allow { 
+    protocol = "tcp" 
+    ports = ["80"] 
+  }
 }
+
 resource "google_compute_firewall" "allow_https" {
   name         = "allow-https1"
   network      = google_compute_network.vpc.name
-  allow        { 
-    protocol = "tcp" 
-    ports = ["443"] 
-  }
-  source_ranges = ["0.0.0.0/0"]
   direction    = "INGRESS"
   target_tags  = ["web"]
+  source_ranges = ["0.0.0.0/0"]
+  allow { 
+    protocol = "tcp"
+  ports = ["443"] 
+  }
 }
 
-# Router + NAT để egress không cần public IP
+# Router + NAT
 resource "google_compute_router" "cr" {
   name    = "${var.vpc_name}-router"
   region  = var.region
