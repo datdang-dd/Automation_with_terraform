@@ -18,7 +18,8 @@ resource "google_storage_bucket" "bucket" {
   }
 
   labels = { purpose = "practice", managed = "terraform" }
-  force_destroy = true   # ✅ Cho phép xóa bucket kể cả có object
+  force_destroy = true   
+  # ✅ Cho phép xóa bucket kể cả có object
 }
 
 resource "google_storage_bucket_iam_binding" "bucket_access" {
