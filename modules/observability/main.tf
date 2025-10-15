@@ -30,11 +30,11 @@ resource "google_monitoring_alert_policy" "cpu_high" {
   display_name = "High CPU Usage"
   combiner     = "OR"
   conditions {
-    display_name = "CPU Utilization > 80%"
+    display_name = "CPU Utilization > 60%"
     condition_threshold {
       filter = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\""
       comparison = "COMPARISON_GT"
-      threshold_value = 0.8
+      threshold_value = 0.6
       duration = "60s"
       trigger { count = 1 }
     }
