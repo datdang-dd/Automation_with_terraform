@@ -16,6 +16,15 @@ resource "google_monitoring_uptime_check_config" "web" {
     }
   }
 }
+# Notification channel – Email
+resource "google_monitoring_notification_channel" "email" {
+  display_name = "Ops Alert Email"
+  type         = "email"
+  labels = {
+    email_address = "dangdat10044001@gmail.com"
+  }
+}
+
 
 resource "google_monitoring_alert_policy" "cpu_high" {
   display_name = "High CPU Usage"
@@ -30,7 +39,7 @@ resource "google_monitoring_alert_policy" "cpu_high" {
       trigger { count = 1 }
     }
   }
-  notification_channels = []
+  notification_channels = [google_monitoring_notification_channel.email.id]
   enabled = true
 }
 
