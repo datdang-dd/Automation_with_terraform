@@ -20,6 +20,10 @@ resource "google_compute_instance_template" "tpl" {
     subnetwork = var.subnetwork_self_link # VM MIG dùng IP private
     # không thêm access_config {} để giữ private
   }
+  lifecycle {
+    prevent_destroy = true          # KHÔNG cho phép xóa
+    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+  }
 
   # !!! chú ý: var.ssh_public_key phải là "ubuntu:<nội_dung gcp_id.pub>"
   metadata = length(var.ssh_public_key) > 0 ? { ssh-keys = var.ssh_public_key } : null
