@@ -21,7 +21,8 @@ resource "google_compute_instance_template" "tpl" {
     # không thêm access_config {} để giữ private
   }
   lifecycle {
-    prevent_destroy       = true
+    prevent_destroy = true          # KHÔNG cho phép xóa
+    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
   # !!! chú ý: var.ssh_public_key phải là "ubuntu:<nội_dung gcp_id.pub>"
