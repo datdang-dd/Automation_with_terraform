@@ -22,11 +22,15 @@ resource "google_compute_instance_template" "tpl" {
   }
   lifecycle {
     prevent_destroy = true          # KHÔNG cho phép xóa
-    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
   # !!! chú ý: var.ssh_public_key phải là "ubuntu:<nội_dung gcp_id.pub>"
-  metadata = length(var.ssh_public_key) > 0 ? { ssh-keys = var.ssh_public_key } : null
+  metadata = length(var.ssh_public_key) > 0 ? { 
+    ssh-keys = var.ssh_public_key 
+    startup-script = file("${path.module}/startup.sh")
+    } : null
+
 }
 
 resource "google_compute_region_instance_group_manager" "mig" {
