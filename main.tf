@@ -18,9 +18,10 @@ provider "google" {
   zone    = var.zone
 }
 
-# 1) Network (VPC + Subnet + Router/NAT + FW)
+# 1) Network (VPC/Subnet/Router-NAT/Firewall)
 module "network" {
   source      = "./modules/network"
+
   project_id  = var.project_id
   region      = var.region
   vpc_name    = "demo1-vpc"
@@ -31,47 +32,52 @@ module "network" {
 
 # 2) Security (Service Account + minimal IAM)
 module "security" {
-  source      = "./modules/security"
-  project_id  = var.project_id
-  sa_id       = "sa-web"
-  sa_roles    = ["roles/storage.objectViewer"] # có thể thêm/giảm
+  source    = "./modules/security"
+
+  project_id = var.project_id
+  sa_id      = "sa-web"
+  sa_roles   = ["roles/storage.objectViewer"] # add more if needed
 }
 
-# 3) Compute (Template + MIG + Autoscaler)
+# 3) Compute (Template + MIG + Autoscaler + Bastion)
+#    All resources are defined INSIDE the module (no duplicates in root)
 module "compute" {
-  source         = "./modules/compute"
-  region         = var.region
-  zone           = var.zone
-  machine_type   = var.machine_type
-  ssh_public_key = var.ssh_public_key
+  source = "./modules/compute"
 
+  region               = var.region
+  zone                 = var.zone
+  machine_type         = var.machine_type
+  ssh_public_key       = var.ssh_public_key
   subnetwork_self_link = module.network.subnet_self_link
   target_tags          = ["web"]
   service_account      = module.security.sa_email
-  size_min             = 2
-  size_max             = 6
 }
 
 # 4) Load Balancer (HTTP/HTTPS)
 module "lb" {
-  source       = "./modules/lb"
-  region       = var.region
-  mig_group    = module.compute.mig_instance_group
-  domain       = var.domain        # "" => chỉ tạo HTTP
+  source = "./modules/lb"
+
+  region    = var.region
+  mig_group = module.compute.mig_instance_group
+  domain    = var.domain         # "" -> HTTP only
 }
 
-# 5) Storage (Bucket + IAM)
+# 5) Storage (Bucket + optional access bindings)
 module "storage" {
-  source             = "./modules/storage"
-  region             = var.region
-  project_id         = var.project_id
-  bucket_name_opt    = var.bucket_name
-  downloader_emails  = var.downloader_emails
+  source            = "./modules/storage"
+
+  region            = var.region
+  project_id        = var.project_id
+  bucket_name_opt   = var.bucket_name
+  downloader_emails = var.downloader_emails
 }
 
-# 6) Observability (Uptime + Alert)
+# 6) Observability (Uptime + Alerts)
 module "observability" {
-  source       = "./modules/observability"
-  project_id   = var.project_id
-  uptime_host  = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
+  source = "./modules/observability"
+
+  project_id  = var.project_id
+  uptime_host = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
 }
+
+
