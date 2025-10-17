@@ -8,3 +8,5 @@ output "lb_https_ip"       { value = module.lb.lb_https_ip }
 
 output "bucket_name"       { value = module.storage.bucket_name }
 output "service_account"   { value = module.security.sa_email }
+
+output "bastion_ip"   { value = module.compute.bastion_ip }
