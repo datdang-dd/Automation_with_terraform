@@ -50,3 +50,8 @@ variable "mig_name" {
   type = string
   default = "web-mig"
 }
+variable "grafana_admin_pass" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+}

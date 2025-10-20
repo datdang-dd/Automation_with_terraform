@@ -43,7 +43,6 @@ module "security" {
 #    All resources are defined INSIDE the module (no duplicates in root)
 module "compute" {
   source = "./modules/compute"
-
   region               = var.region
   zone                 = var.zone
   machine_type         = var.machine_type
@@ -51,6 +50,8 @@ module "compute" {
   subnetwork_self_link = module.network.subnet_self_link
   target_tags          = ["web"]
   service_account      = module.security.sa_email
+  project_id = var.project_id
+  grafana_admin_pass = var.grafana_admin_pass
 }
 
 # 4) Load Balancer (HTTP/HTTPS)
