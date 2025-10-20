@@ -1,8 +1,9 @@
 variable "project_id"   { type = string }
 variable "uptime_host"  { type = string }                      # có thể unknown ở plan
 
-variable "region" {
+variable "region"{ 
   type = string
+  default = "us-central1" 
 }
 variable "enable_uptime" { 
   type = bool  
