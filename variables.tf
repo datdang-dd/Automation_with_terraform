@@ -45,3 +45,8 @@ variable "uptime_host" {
   type = string
   default = "" 
 }  # để override nếu muốn
+
+variable "mig_name" {
+  type = string
+  default = "web-mig"
+}
