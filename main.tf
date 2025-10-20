@@ -27,7 +27,7 @@ module "network" {
   subnet_name = "demo1-subnet"
   subnet_cidr = var.subnet_cidr
   ssh_cidr    = var.ssh_cidr
-  subnetwork_self_link = var.subnetwork_self_link
+  subnetwork_self_link = module.network.subnet_self_link
   grafana_allowed_cidr= var.grafana_allowed_cidr
 
 }

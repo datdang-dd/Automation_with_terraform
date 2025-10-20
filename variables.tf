@@ -57,8 +57,7 @@ variable "grafana_admin_pass" {
   default = "admin"
 }
 variable "grafana_allowed_cidr" {
-  type = string
-}
-variable "subnetwork_self_link" {
-  type = string
+  description = "CIDR allowed to access Grafana (port 3000)"
+  type        = string
+  default     = "0.0.0.0/0" # change to your office IP/CIDR
 }
