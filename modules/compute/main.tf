@@ -25,7 +25,7 @@ resource "google_compute_instance_template" "tpl" {
     //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
-  # !!! chú ý: var.ssh_public_key phải là "ubuntu:<nội_dung gcp_id.pub>"
+  # !!! chú ý: var.ssh_public_key phải là "username:<nội_dung gcp_id.pub>"
   metadata = length(var.ssh_public_key) > 0 ? { 
     ssh-keys = var.ssh_public_key 
     startup-script = file("${path.module}/startup.sh")

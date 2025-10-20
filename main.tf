@@ -74,10 +74,12 @@ module "storage" {
 
 # 6) Observability (Uptime + Alerts)
 module "observability" {
-  source = "./modules/observability"
-
-  project_id  = var.project_id
-  uptime_host = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
+  source       = "./modules/observability"
+  project_id   = var.project_id
+  mig_name     = "web-mig"   # hoặc output từ module compute nếu bạn export
+  uptime_host  = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
+  enable_uptime = true
 }
+
 
 
