@@ -63,21 +63,22 @@ resource "google_monitoring_dashboard" "mig_dashboard" {
       widgets = [
         # 1) MIG Size (actual)
         {
-          title   = "MIG Size (actual) - ${var.mig_name}"
+          title   = "MIG Target Size - ${var.mig_name}"
           xyChart = {
             chartOptions = { mode = "COLOR" }
             dataSets = [
               {
-                plotType        = "LINE"
-                legendTemplate  = "actual size"
+                plotType       = "LINE"
+                legendTemplate = "target size"
                 timeSeriesQuery = {
-                  timeSeriesFilter = {
-                    filter = "metric.type=\"compute.googleapis.com/instance_group/size\" AND resource.type=\"gce_instance_group\" AND resource.label.\"instance_group_name\"=\"${var.mig_name}\""
-                    aggregation = {
-                      alignmentPeriod   = "60s"
-                      perSeriesAligner  = "ALIGN_MEAN"
-                    }
-                  }
+                  timeSeriesQueryLanguage = <<-MQL
+                    fetch gce_instance_group_manager
+                    | metric 'compute.googleapis.com/instance_group_manager/target_size'
+                    | filter resource.instance_group_manager_name == '${var.mig_name}'
+                      && resource.location == '${var.region}'
+                    | align mean(1m)
+                    | every 1m
+                  MQL
                 }
               }
             ]
@@ -87,27 +88,28 @@ resource "google_monitoring_dashboard" "mig_dashboard" {
 
         # 2) MIG Target Size
         {
-          title   = "MIG Target Size - ${var.mig_name}"
-          xyChart = {
-            chartOptions = { mode = "COLOR" }
-            dataSets = [
-              {
-                plotType        = "LINE"
-                legendTemplate  = "target size"
-                timeSeriesQuery = {
-                  timeSeriesFilter = {
-                    filter = "metric.type=\"compute.googleapis.com/instance_group/target_size\" AND resource.type=\"gce_instance_group\" AND resource.label.\"instance_group_name\"=\"${var.mig_name}\""
-                    aggregation = {
-                      alignmentPeriod   = "60s"
-                      perSeriesAligner  = "ALIGN_MEAN"
-                    }
-                  }
-                }
+        title   = "MIG Managed Instance Count - ${var.mig_name}"
+        xyChart = {
+          chartOptions = { mode = "COLOR" }
+          dataSets = [
+            {
+              plotType       = "LINE"
+              legendTemplate = "managed instances"
+              timeSeriesQuery = {
+                timeSeriesQueryLanguage = <<-MQL
+                  fetch gce_instance_group_manager
+                  | metric 'compute.googleapis.com/instance_group_manager/instance_count'
+                  | filter resource.instance_group_manager_name == '${var.mig_name}'
+                    && resource.location == '${var.region}'
+                  | align mean(1m)
+                  | every 1m
+                MQL
               }
-            ]
-            yAxis = { label = "instances", scale = "LINEAR" }
-          }
-        },
+            }
+          ]
+          yAxis = { label = "instances", scale = "LINEAR" }
+        }
+      },
 
         # 3) CPU Utilization (avg across instances)
         {
@@ -142,18 +144,17 @@ resource "google_monitoring_dashboard" "mig_dashboard" {
             chartOptions = { mode = "COLOR" }
             dataSets = [
               {
-                plotType        = "LINE"
-                legendTemplate  = "pass ratio"
+                plotType       = "LINE"
+                legendTemplate = "pass ratio"
                 timeSeriesQuery = {
-                  timeSeriesFilter = {
-                    filter = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND resource.label.\"host\"=\"${var.uptime_host}\""
-                    aggregation = {
-                      alignmentPeriod    = "60s"
-                      perSeriesAligner   = "ALIGN_MEAN"
-                      crossSeriesReducer = "REDUCE_MEAN"
-                      groupByFields      = ["resource.label.\"host\""]
-                    }
-                  }
+                  timeSeriesQueryLanguage = <<-MQL
+                    fetch uptime_url
+                    | metric 'monitoring.googleapis.com/uptime_check/check_passed'
+                    | filter resource.host == '${var.uptime_host}'
+                    | group_by [], mean(val())
+                    | align mean(1m)
+                    | every 1m
+                  MQL
                 }
               }
             ]
