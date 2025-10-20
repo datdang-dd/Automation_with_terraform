@@ -56,3 +56,9 @@ variable "grafana_admin_pass" {
   sensitive   = true
   default = "admin"
 }
+variable "grafana_allowed_cidr" {
+  type = string
+}
+variable "subnetwork_self_link" {
+  type = string
+}

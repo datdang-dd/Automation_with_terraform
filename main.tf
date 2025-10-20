@@ -21,13 +21,15 @@ provider "google" {
 # 1) Network (VPC/Subnet/Router-NAT/Firewall)
 module "network" {
   source      = "./modules/network"
-
   project_id  = var.project_id
   region      = var.region
   vpc_name    = "demo1-vpc"
   subnet_name = "demo1-subnet"
   subnet_cidr = var.subnet_cidr
   ssh_cidr    = var.ssh_cidr
+  subnetwork_self_link = var.subnetwork_self_link
+  grafana_allowed_cidr= var.grafana_allowed_cidr
+
 }
 
 # 2) Security (Service Account + minimal IAM)
