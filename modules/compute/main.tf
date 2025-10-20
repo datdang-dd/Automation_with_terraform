@@ -22,7 +22,7 @@ resource "google_compute_instance_template" "tpl" {
   }
   lifecycle {
     prevent_destroy = true          # KHÔNG cho phép xóa
-    //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
   # !!! chú ý: var.ssh_public_key phải là "username:<nội_dung gcp_id.pub>"
