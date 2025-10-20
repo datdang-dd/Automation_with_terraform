@@ -3,7 +3,6 @@ variable "uptime_host"  { type = string }                      # có thể unkno
 
 variable "region"{ 
   type = string
-  default = "us-central1" 
 }
 variable "enable_uptime" { 
   type = bool  

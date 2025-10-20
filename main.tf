@@ -79,6 +79,7 @@ module "observability" {
   mig_name     = "web-mig"   # hoặc output từ module compute nếu bạn export
   uptime_host  = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
   enable_uptime = true
+  region = var.region
 }
 
 
