@@ -77,3 +77,21 @@ resource "google_compute_router_nat" "nat" {
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
+
+# Get the network of the provided subnetwork
+data "google_compute_subnetwork" "bastion_subnet" {
+  self_link = var.subnetwork_self_link
+}
+
+resource "google_compute_firewall" "allow_grafana" {
+  name    = "allow-grafana"
+  network = data.google_compute_subnetwork.bastion_subnet.network
+
+  allow {
+    protocol = "tcp"
+    ports    = ["3000"]
+  }
+
+  source_ranges = [var.grafana_allowed_cidr]
+  target_tags   = ["allow-grafana"]
+}

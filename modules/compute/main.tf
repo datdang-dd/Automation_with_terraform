@@ -61,18 +61,39 @@ resource "google_compute_instance" "bastion" {
   zone         = var.zone
 
   boot_disk {
-    initialize_params {
-      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
-    }
+    initialize_params { image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts" }
   }
 
   network_interface {
-    subnetwork = var.subnetwork_self_link
-    access_config {}                      # 👈 cấp public IP cho bastion
+    subnetwork   = var.subnetwork_self_link
+    access_config {}
   }
 
-  # giống MIG: cần "ubuntu:<key>"
-  metadata = { ssh-keys = var.ssh_public_key }
+  # keep your SSH key injection as you already had
+  
 
-  tags = ["allow-ssh1"]                   # 👈 khớp firewall allow-ssh-bastion
+  # STARTUP: write SA json from GOOGLE_CREDENTIALS, set ADC, install Docker, run Grafana, provision GCM datasource
+  # Tag also for Grafana access rule
+  tags = ["allow-ssh1", "allow-grafana"]
+  
+  metadata_startup_script = templatefile(
+    "${path.module}/grafana_startup.sh.tmpl",
+    {
+      project_id         = var.project_id         # pass down from root
+      grafana_admin_user = var.grafana_admin_user
+      grafana_admin_pass = var.grafana_admin_pass
+    }
+  )
+
+  # Pass values to the startup environment (project id, grafana creds)
+  metadata = merge(
+    metadata,
+    {
+      project_id           = var.project_id
+      GRAFANA_ADMIN_USER   = var.grafana_admin_user
+      GRAFANA_ADMIN_PASS   = var.grafana_admin_pass
+      PROJECT_ID_OVERRIDE  = var.project_id
+      ssh-keys = var.ssh_public_key 
+    }
+  )
 }

@@ -1,5 +1,7 @@
 variable "region"               { type = string }
-
+variable "project_id" {
+  type = string
+}
 variable "zone" {
   type = string
 }
@@ -15,4 +17,22 @@ variable "size_min" {
 variable "size_max"  { 
     type = number
     default = 4
+}
+
+variable "grafana_admin_user" {
+  description = "Grafana admin username"
+  type        = string
+  default     = "admin"
+}
+
+variable "grafana_admin_pass" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "grafana_allowed_cidr" {
+  description = "CIDR allowed to access Grafana (port 3000)"
+  type        = string
+  default     = "0.0.0.0/32" # change to your office IP/CIDR
 }
