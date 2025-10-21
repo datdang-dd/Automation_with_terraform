@@ -1,23 +1,16 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# 1) Ghi SA JSON nếu GOOGLE_CREDENTIALS có sẵn (Terraform Cloud Env Var)
-if [ -n "$${GOOGLE_CREDENTIALS:-}" ]; then
-  install -d -m 700 /opt/gcp
-  printf "%s" "$${GOOGLE_CREDENTIALS}" > /opt/gcp/sa.json
-  chmod 600 /opt/gcp/sa.json
-fi
-
-# 2) Cài Docker
+# Cài Docker
 apt-get update -y
 apt-get install -y docker.io
 
-# 3) Tạo thư mục provisioning cho Grafana
+# Thư mục provisioning cho Grafana
 install -d -m 755 /opt/grafana/provisioning/datasources
 install -d -m 755 /opt/grafana/dashboards
 
-# 4) Datasource Google Cloud Monitoring (dùng ADC)
-cat >/opt/grafana/provisioning/datasources/stackdriver.yaml <<'YAML'
+# Datasource Google Cloud Monitoring dùng ADC (GCE default service account)
+cat >/opt/grafana/provisioning/datasources/stackdriver.yaml <<EOF
 apiVersion: 1
 datasources:
   - name: Google Cloud Monitoring
@@ -25,24 +18,17 @@ datasources:
     access: proxy
     isDefault: true
     jsonData:
-      authenticationType: default   # dùng ADC
+      authenticationType: gce
       defaultProject: ${project_id}
-YAML
+EOF
 
-# Thay project_id (nếu muốn override qua PROJECT_ID_OVERRIDE)
-sed -i "s|\${project_id}|$${PROJECT_ID_OVERRIDE:-${project_id}}|g" \
-  /opt/grafana/provisioning/datasources/stackdriver.yaml
-
-# 5) Chạy Grafana: mount SA JSON + set env bên trong container
+# Chạy Grafana (KHÔNG mount SA JSON, KHÔNG set GOOGLE_APPLICATION_CREDENTIALS)
 docker rm -f grafana || true
 docker run -d --name grafana --restart=always \
   -p 3000:3000 \
   -e GF_SECURITY_ADMIN_USER='${grafana_admin_user}' \
   -e GF_SECURITY_ADMIN_PASSWORD='${grafana_admin_pass}' \
   -e GF_AUTH_ANONYMOUS_ENABLED=false \
-  -e GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/google/sa.json \
-  -e PROJECT_ID_OVERRIDE="${project_id}" \
   -v /opt/grafana/provisioning:/etc/grafana/provisioning \
   -v /opt/grafana/dashboards:/var/lib/grafana/dashboards \
-  -v /opt/gcp:/var/secrets/google:ro \
   grafana/grafana:latest

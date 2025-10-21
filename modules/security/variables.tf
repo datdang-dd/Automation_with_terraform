@@ -8,6 +8,7 @@ variable "sa_roles"   {
     default = [
         "roles/logging.logWriter",
         "roles/monitoring.metricWriter",
+        "roles/monitoring.objectViewer",
         "roles/storage.objectViewer"
     ] 
 }

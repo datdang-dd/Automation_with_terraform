@@ -38,7 +38,12 @@ module "security" {
 
   project_id = var.project_id
   sa_id      = "sa-web"
-  sa_roles   = ["roles/storage.objectViewer"] # add more if needed
+  sa_roles   = [
+    "roles/storage.objectViewer",
+    "roles/monitoring.metricReader",
+    "roles/monitoring.viewer",
+    "roles/logging.viewer"
+  ]
 }
 
 # 3) Compute (Template + MIG + Autoscaler + Bastion)
@@ -53,6 +58,7 @@ module "compute" {
   target_tags          = ["web"]
   service_account      = module.security.sa_email
   project_id = var.project_id
+  grafana_admin_user = "admin"
   grafana_admin_pass = var.grafana_admin_pass
 }
 
