@@ -40,9 +40,9 @@ module "security" {
   sa_id      = "sa-web"
   sa_roles   = [
     "roles/storage.objectViewer",
-    "roles/monitoring.metricReader",
+    "roles/monitoring.metricWriter",
     "roles/monitoring.viewer",
-    "roles/logging.viewer"
+    "roles/logging.logWriter"
   ]
 }
 
