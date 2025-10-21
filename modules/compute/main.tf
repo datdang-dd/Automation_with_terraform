@@ -44,9 +44,11 @@ resource "google_compute_resource_policy" "snapshot_policy" {
 
   snapshot_schedule_policy {
     schedule {
-      daily_schedule {
-        days_in_cycle = 7
-        start_time    = "02:00"
+      weekly_schedule {
+        day_of_weeks {
+          day        = "MONDAY"
+          start_time = "02:00"
+        }
       }
     }
     
