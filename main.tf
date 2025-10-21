@@ -44,6 +44,7 @@ module "security" {
     "roles/monitoring.viewer",
     "roles/logging.logWriter"
   ]
+  admin_email = length(var.downloader_emails) > 0 ? var.downloader_emails[0] : ""
 }
 
 # 3) Compute (Template + MIG + Autoscaler + Bastion)

@@ -42,4 +42,24 @@ resource "google_project_iam_member" "bind" {
   depends_on = [google_project_service.enable_crm]
 }
 
+# Grant admin email access to snapshots and compute resources
+resource "google_project_iam_member" "admin_snapshot_access" {
+  count   = length(var.admin_email) > 0 ? 1 : 0
+  project = var.project_id
+  role    = "roles/compute.storageAdmin"
+  member  = "user:${var.admin_email}"
+
+  depends_on = [google_project_service.enable_crm]
+}
+
+# Grant admin email access to view and manage snapshots
+resource "google_project_iam_member" "admin_compute_viewer" {
+  count   = length(var.admin_email) > 0 ? 1 : 0
+  project = var.project_id
+  role    = "roles/compute.viewer"
+  member  = "user:${var.admin_email}"
+
+  depends_on = [google_project_service.enable_crm]
+}
+
 

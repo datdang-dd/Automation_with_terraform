@@ -12,3 +12,9 @@ variable "sa_roles"   {
         "roles/storage.objectViewer"
     ] 
 }
+
+variable "admin_email" {
+  description = "Email address that will have admin access to snapshots"
+  type        = string
+  default     = ""
+}
