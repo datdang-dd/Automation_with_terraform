@@ -63,7 +63,7 @@ module "compute" {
   grafana_admin_pass = var.grafana_admin_pass
 }
 
-# 4) Load Balancer (HTTP/HTTPS)
+# 4) Load Balancer (HTTP/HTTPS) with Simple Web Security
 module "lb" {
   source = "./modules/lb"
 

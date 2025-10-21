@@ -24,3 +24,9 @@ output "admin_email" {
   description = "Admin email with snapshot access permissions"
   value       = module.security.admin_email
 }
+
+# Simple Web Security Output
+output "web_security_policy" {
+  description = "Cloud Armor security policy name for web protection"
+  value       = module.lb.security_policy_name
+}
