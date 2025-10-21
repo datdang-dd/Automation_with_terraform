@@ -1,4 +1,4 @@
-# Simple Cloud Armor Security Policy for Testing
+# Cloud Armor Security Policy - Optimized for High Traffic
 resource "google_compute_security_policy" "web_security_policy" {
   name = "web-security-policy"
   
@@ -15,7 +15,7 @@ resource "google_compute_security_policy" "web_security_policy" {
     description = "default allow rule"
   }
   
-  # Simple rate limiting - 1000 requests per minute per IP
+  # High traffic rate limiting - 10,000 requests per minute per IP
   rule {
     action   = "throttle"
     priority = "100"
@@ -30,11 +30,55 @@ resource "google_compute_security_policy" "web_security_policy" {
       exceed_action = "deny(429)"
       enforce_on_key = "IP"
       rate_limit_threshold {
-        count = 1000
+        count = 10000
         interval_sec = 60
       }
     }
-    description = "Rate limiting - 1000 req/min per IP"
+    description = "High traffic rate limiting - 10,000 req/min per IP"
+  }
+  
+  # Aggressive DDoS protection - 1000 requests per 10 seconds per IP
+  rule {
+    action   = "throttle"
+    priority = "50"
+    match {
+      versioned_expr = "SRC_IPS_V1"
+      config {
+        src_ip_ranges = ["*"]
+      }
+    }
+    rate_limit_options {
+      conform_action = "allow"
+      exceed_action = "deny(429)"
+      enforce_on_key = "IP"
+      rate_limit_threshold {
+        count = 1000
+        interval_sec = 10
+      }
+    }
+    description = "DDoS protection - 1000 req/10sec per IP"
+  }
+  
+  # Burst protection - 100 requests per second per IP
+  rule {
+    action   = "throttle"
+    priority = "25"
+    match {
+      versioned_expr = "SRC_IPS_V1"
+      config {
+        src_ip_ranges = ["*"]
+      }
+    }
+    rate_limit_options {
+      conform_action = "allow"
+      exceed_action = "deny(429)"
+      enforce_on_key = "IP"
+      rate_limit_threshold {
+        count = 100
+        interval_sec = 1
+      }
+    }
+    description = "Burst protection - 100 req/sec per IP"
   }
 }
 
@@ -52,8 +96,30 @@ resource "google_compute_backend_service" "be" {
   health_checks         = [google_compute_health_check.hc.id]
   backend { group = var.mig_group }
   
-  # Simple security: Apply Cloud Armor policy
+  # Security: Apply Cloud Armor policy
   security_policy = google_compute_security_policy.web_security_policy.id
+  
+  # DDoS Protection: Enable connection draining
+  connection_draining_timeout_sec = 30
+  
+  # DDoS Protection: Enable session affinity
+  session_affinity = "CLIENT_IP"
+  
+  # DDoS Protection: Enable CDN for better performance
+  enable_cdn = true
+  cdn_policy {
+    cache_mode = "CACHE_ALL_STATIC"
+    default_ttl = 3600
+    client_ttl  = 3600
+    max_ttl     = 86400
+    # Minimal cache_key_policy to satisfy provider requirements
+    cache_key_policy {
+      include_host           = true
+      include_protocol       = true
+      include_query_string   = false
+      # query_string_whitelist and blacklist not needed when include_query_string=false
+    }
+  }
 }
 
 resource "google_compute_url_map" "um" {
