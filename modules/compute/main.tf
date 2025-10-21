@@ -46,8 +46,8 @@ resource "google_compute_resource_policy" "snapshot_policy" {
     schedule {
       weekly_schedule {
         day_of_weeks {
-          day        = "MONDAY"
-          start_time = "02:00"
+          day        = "TUESDAY"
+          start_time = "13:00"
         }
       }
     }
