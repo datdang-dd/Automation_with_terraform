@@ -21,13 +21,15 @@ provider "google" {
 # 1) Network (VPC/Subnet/Router-NAT/Firewall)
 module "network" {
   source      = "./modules/network"
-
   project_id  = var.project_id
   region      = var.region
   vpc_name    = "demo1-vpc"
   subnet_name = "demo1-subnet"
   subnet_cidr = var.subnet_cidr
   ssh_cidr    = var.ssh_cidr
+  subnetwork_self_link = module.network.subnet_self_link
+  grafana_allowed_cidr= var.grafana_allowed_cidr
+
 }
 
 # 2) Security (Service Account + minimal IAM)
@@ -43,7 +45,6 @@ module "security" {
 #    All resources are defined INSIDE the module (no duplicates in root)
 module "compute" {
   source = "./modules/compute"
-
   region               = var.region
   zone                 = var.zone
   machine_type         = var.machine_type
@@ -51,6 +52,8 @@ module "compute" {
   subnetwork_self_link = module.network.subnet_self_link
   target_tags          = ["web"]
   service_account      = module.security.sa_email
+  project_id = var.project_id
+  grafana_admin_pass = var.grafana_admin_pass
 }
 
 # 4) Load Balancer (HTTP/HTTPS)

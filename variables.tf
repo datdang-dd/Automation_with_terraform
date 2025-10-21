@@ -50,3 +50,14 @@ variable "mig_name" {
   type = string
   default = "web-mig"
 }
+variable "grafana_admin_pass" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+  default = "admin"
+}
+variable "grafana_allowed_cidr" {
+  description = "CIDR allowed to access Grafana (port 3000)"
+  type        = string
+  default     = "0.0.0.0/0" # change to your office IP/CIDR
+}
