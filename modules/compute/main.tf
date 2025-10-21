@@ -75,7 +75,7 @@ resource "google_compute_instance" "bastion" {
   # STARTUP: write SA json from GOOGLE_CREDENTIALS, set ADC, install Docker, run Grafana, provision GCM datasource
   # Tag also for Grafana access rule
   tags = ["allow-ssh1", "allow-grafana"]
-  
+
   metadata_startup_script = templatefile(
     "${path.module}/grafana_startup.sh.tmpl",
     {
@@ -86,14 +86,11 @@ resource "google_compute_instance" "bastion" {
   )
 
   # Pass values to the startup environment (project id, grafana creds)
-  metadata = merge(
-    metadata,
-    {
+  metadata = {
       project_id           = var.project_id
       GRAFANA_ADMIN_USER   = var.grafana_admin_user
       GRAFANA_ADMIN_PASS   = var.grafana_admin_pass
       PROJECT_ID_OVERRIDE  = var.project_id
-      ssh-keys = var.ssh_public_key 
+      "ssh-keys" = var.ssh_public_key 
     }
-  )
 }
