@@ -14,3 +14,8 @@ output "bastion_ip" {
   description = "Public IP of the bastion host"
   value       = module.compute.bastion_ip
 }
+
+output "snapshot_policy_name" {
+  description = "Name of the snapshot policy for MIG instances"
+  value       = module.compute.snapshot_policy_name
+}

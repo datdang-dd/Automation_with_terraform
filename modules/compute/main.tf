@@ -14,6 +14,9 @@ resource "google_compute_instance_template" "tpl" {
     boot         = true
     type         = "pd-balanced"
     disk_size_gb = 10
+    
+    # Enable auto snapshot policy
+    resource_policies = [google_compute_resource_policy.snapshot_policy.id]
   }
 
   network_interface {
@@ -31,6 +34,37 @@ resource "google_compute_instance_template" "tpl" {
     startup-script = file("${path.module}/startup.sh")
     } : null
 
+}
+
+# Snapshot policy for MIG instances - creates snapshot after 7 days, deletes after another 7 days
+# This uses a weekly schedule that creates snapshots every 7 days and keeps them for 7 days
+resource "google_compute_resource_policy" "snapshot_policy" {
+  name   = "mig-snapshot-policy"
+  region = var.region
+
+  snapshot_schedule_policy {
+    schedule {
+      daily_schedule {
+        days_in_cycle = 7
+        start_time    = "02:00"
+      }
+    }
+    
+    retention_policy {
+      max_retention_days    = 7
+      on_source_disk_delete = "KEEP_AUTO_SNAPSHOTS"
+    }
+    
+    snapshot_properties {
+      labels = {
+        environment = "production"
+        managed_by  = "terraform"
+        mig_name    = "web-mig"
+        schedule_type = "weekly"
+      }
+      storage_locations = [var.region]
+    }
+  }
 }
 
 resource "google_compute_region_instance_group_manager" "mig" {
@@ -69,7 +103,10 @@ resource "google_compute_instance" "bastion" {
     access_config {}
   }
 
-  # keep your SSH key injection as you already had
+service_account {
+    email  = var.service_account         # truyền từ root (module.security.sa_email)
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+  }
   
 
   # STARTUP: write SA json from GOOGLE_CREDENTIALS, set ADC, install Docker, run Grafana, provision GCM datasource
