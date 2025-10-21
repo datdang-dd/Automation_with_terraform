@@ -112,6 +112,13 @@ resource "google_compute_backend_service" "be" {
     default_ttl = 3600
     client_ttl  = 3600
     max_ttl     = 86400
+    # Minimal cache_key_policy to satisfy provider requirements
+    cache_key_policy {
+      include_host           = true
+      include_protocol       = true
+      include_query_string   = false
+      # query_string_whitelist and blacklist not needed when include_query_string=false
+    }
   }
 }
 
