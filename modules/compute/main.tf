@@ -119,7 +119,7 @@ service_account {
     "${path.module}/grafana_startup.sh.tmpl",
     {
       project_id         = var.project_id         # pass down from root
-      grafana_admin_user = var.grafana_receive_emails[0]
+      grafana_admin_user = var.grafana_admin_user
       grafana_admin_pass = var.grafana_admin_pass
       grafana_smtp_host  = var.grafana_smtp_host
       grafana_smtp_port  = var.grafana_smtp_port
