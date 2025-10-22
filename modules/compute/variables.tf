@@ -53,7 +53,9 @@ variable "grafana_smtp_port" {
 variable "grafana_smtp_user" {
   description = "SMTP username"
   type        = string
-  default     = var.grafana_receive_emails[0]
+  # Default must be a literal; do not reference other variables here.
+  # If you want to populate this from the root list `grafana_receive_emails`,
+  # pass it explicitly when calling the module (see root `main.tf`).
 }
 
 variable "grafana_smtp_pass" {

@@ -64,7 +64,7 @@ module "compute" {
   # Grafana SMTP passthrough
   grafana_smtp_host        = var.grafana_smtp_host
   grafana_smtp_port        = var.grafana_smtp_port
-  grafana_smtp_user        = var.grafana_smtp_user
+  grafana_smtp_user        = var.grafana_receive_emails[0]
   grafana_smtp_pass        = var.grafana_smtp_pass
   grafana_smtp_from        = var.grafana_smtp_from
   grafana_smtp_skip_verify = var.grafana_smtp_skip_verify
