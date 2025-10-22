@@ -61,6 +61,13 @@ module "compute" {
   project_id = var.project_id
   grafana_admin_user = "admin"
   grafana_admin_pass = var.grafana_admin_pass
+  # Grafana SMTP passthrough
+  grafana_smtp_host        = var.grafana_smtp_host
+  grafana_smtp_port        = var.grafana_smtp_port
+  grafana_smtp_user        = var.grafana_receive_emails[0]
+  grafana_smtp_pass        = var.grafana_smtp_pass
+  grafana_smtp_from        = var.grafana_smtp_from
+  grafana_smtp_skip_verify = var.grafana_smtp_skip_verify
 }
 
 # 4) Load Balancer (HTTP/HTTPS) with Simple Web Security
@@ -90,6 +97,17 @@ module "observability" {
   uptime_host  = var.uptime_host != "" ? var.uptime_host : module.lb.lb_http_ip
   enable_uptime = true
   region = var.region
+}
+
+# 7) Optional DNS: create or use a Cloud DNS managed zone and create an A record for `var.domain`
+module "dns" {
+  source = "./modules/dns"
+  project_id = var.project_id
+  zone_name = var.dns_zone_name   # optional: use existing managed zone
+  dns_name  = var.dns_name        # optional: when creating a new zone, must be like "example.com."
+  domain    = var.domain
+  lb_ip     = module.lb.lb_http_ip
+  ttl       = 300
 }
 
 
