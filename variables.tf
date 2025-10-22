@@ -36,6 +36,11 @@ variable "downloader_emails" {
   default = [] 
 }
 
+variable "grafana_receive_emails" {
+  type = list(string)
+  default = []
+}
+
 variable "domain" { 
   type = string
   default = "" 
@@ -50,6 +55,17 @@ variable "mig_name" {
   type = string
   default = "web-mig"
 }
+variable "dns_zone_name" {
+  description = "Optional: use an existing Cloud DNS managed zone name"
+  type        = string
+  default     = ""
+}
+
+variable "dns_name" {
+  description = "Optional: dns_name to create a managed zone (must end with a dot), e.g. example.com."
+  type        = string
+  default     = ""
+}
 variable "grafana_admin_pass" {
   description = "Grafana admin password"
   type        = string
@@ -60,4 +76,35 @@ variable "grafana_allowed_cidr" {
   description = "CIDR allowed to access Grafana (port 3000)"
   type        = string
   default     = "0.0.0.0/0" # change to your office IP/CIDR
+}
+
+# Grafana SMTP settings (optional)
+variable "grafana_smtp_host" {
+  type    = string
+  default = ""
+}
+
+variable "grafana_smtp_port" {
+  type    = string
+  default = ""
+}
+
+variable "grafana_smtp_user" {
+  type    = string
+  default = ""
+}
+
+variable "grafana_smtp_pass" {
+  type    = string
+  default = ""
+}
+
+variable "grafana_smtp_from" {
+  type    = string
+  default = ""
+}
+
+variable "grafana_smtp_skip_verify" {
+  type    = string
+  default = "false"
 }
