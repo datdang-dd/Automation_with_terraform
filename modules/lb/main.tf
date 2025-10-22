@@ -74,8 +74,10 @@ resource "google_compute_security_policy" "web_security_policy" {
       exceed_action = "deny(429)"
       enforce_on_key = "IP"
       rate_limit_threshold {
-        count = 100
-        interval_sec = 1
+        # interval_sec must be one of the allowed values (10,30,60,...).
+        # To preserve ~100 requests/second, use 1000 requests per 10 seconds.
+        count = 1000
+        interval_sec = 10
       }
     }
     description = "Burst protection - 100 req/sec per IP"
