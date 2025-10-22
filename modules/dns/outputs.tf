@@ -3,9 +3,9 @@ output "managed_zone_name" {
 }
 
 output "record_fqdn" {
-  value = google_dns_record_set.a_record.name
+  value = length(google_dns_record_set.a_record) > 0 ? google_dns_record_set.a_record[0].name : ""
 }
 
 output "record_ttl" {
-  value = google_dns_record_set.a_record.ttl
+  value = length(google_dns_record_set.a_record) > 0 ? google_dns_record_set.a_record[0].ttl : 0
 }
