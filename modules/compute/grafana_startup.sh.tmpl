@@ -1,9 +1,26 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# Cài Docker
+# Install Docker and prerequisites (non-interactive)
+export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
+apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
 apt-get install -y docker.io
+
+# Enable and start Docker service, then wait for the daemon to be ready
+systemctl enable --now docker || true
+for i in $(seq 1 30); do
+  if docker info >/dev/null 2>&1; then
+    echo "docker is up"
+    break
+  fi
+  echo "waiting for docker daemon... ($i)"
+  sleep 2
+done
+if ! docker info >/dev/null 2>&1; then
+  echo "ERROR: docker daemon did not start" >&2
+  exit 1
+fi
 
 # Thư mục provisioning cho Grafana
 install -d -m 755 /opt/grafana/provisioning/datasources
@@ -22,22 +39,43 @@ datasources:
       defaultProject: ${project_id}
 EOF
 
-# Chạy Grafana (KHÔNG mount SA JSON, KHÔNG set GOOGLE_APPLICATION_CREDENTIALS)
-docker rm -f grafana || true
-docker run -d --name grafana --restart=always \
-  -p 3000:3000 \
-  -e GF_SECURITY_ADMIN_USER='${grafana_admin_user}' \
-  -e GF_SECURITY_ADMIN_PASSWORD='${grafana_admin_pass}' \
-  -e GF_AUTH_ANONYMOUS_ENABLED=false \
-  \
-  # SMTP configuration for alerting (optional)
-  $( [ "${grafana_smtp_host}" != "" ] && echo "-e GF_SMTP_ENABLED=true \")
-  $( [ "${grafana_smtp_host}" != "" ] && echo "-e GF_SMTP_HOST='${grafana_smtp_host}' \")
-  $( [ "${grafana_smtp_port}" != "" ] && echo "-e GF_SMTP_PORT='${grafana_smtp_port}' \")
-  $( [ "${grafana_smtp_user}" != "" ] && echo "-e GF_SMTP_USER='${grafana_smtp_user}' \")
-  $( [ "${grafana_smtp_pass}" != "" ] && echo "-e GF_SMTP_PASSWORD='${grafana_smtp_pass}' \")
-  $( [ "${grafana_smtp_from}" != "" ] && echo "-e GF_SMTP_FROM_ADDRESS='${grafana_smtp_from}' \")
-  $( [ "${grafana_smtp_skip_verify}" != "false" ] && echo "-e GF_SMTP_SKIP_VERIFY='${grafana_smtp_skip_verify}' \")
-  -v /opt/grafana/provisioning:/etc/grafana/provisioning \
-  -v /opt/grafana/dashboards:/var/lib/grafana/dashboards \
-  grafana/grafana:latest
+# Run Grafana container (do this after docker daemon is available)
+docker rm -f grafana >/dev/null 2>&1 || true
+
+# Build docker run args safely
+DOCKER_ARGS=(
+  -d --name grafana --restart=always
+  -p 3000:3000
+  -e "GF_SECURITY_ADMIN_USER=${grafana_admin_user}"
+  -e "GF_SECURITY_ADMIN_PASSWORD=${grafana_admin_pass}"
+  -e "GF_AUTH_ANONYMOUS_ENABLED=false"
+)
+
+# Optional SMTP args
+if [ "${grafana_smtp_host}" != "" ]; then
+  DOCKER_ARGS+=( -e "GF_SMTP_ENABLED=true" )
+  DOCKER_ARGS+=( -e "GF_SMTP_HOST=${grafana_smtp_host}" )
+fi
+if [ "${grafana_smtp_port}" != "" ]; then
+  DOCKER_ARGS+=( -e "GF_SMTP_PORT=${grafana_smtp_port}" )
+fi
+if [ "${grafana_smtp_user}" != "" ]; then
+  DOCKER_ARGS+=( -e "GF_SMTP_USER=${grafana_smtp_user}" )
+fi
+if [ "${grafana_smtp_pass}" != "" ]; then
+  DOCKER_ARGS+=( -e "GF_SMTP_PASSWORD=${grafana_smtp_pass}" )
+fi
+if [ "${grafana_smtp_from}" != "" ]; then
+  DOCKER_ARGS+=( -e "GF_SMTP_FROM_ADDRESS=${grafana_smtp_from}" )
+fi
+if [ "${grafana_smtp_skip_verify}" != "false" ]; then
+  DOCKER_ARGS+=( -e "GF_SMTP_SKIP_VERIFY=${grafana_smtp_skip_verify}" )
+fi
+
+# Mounts and image
+DOCKER_ARGS+=( -v /opt/grafana/provisioning:/etc/grafana/provisioning )
+DOCKER_ARGS+=( -v /opt/grafana/dashboards:/var/lib/grafana/dashboards )
+DOCKER_IMAGE="grafana/grafana:latest"
+
+# Run container
+docker run "${DOCKER_ARGS[@]}" "$DOCKER_IMAGE"

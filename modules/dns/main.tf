@@ -12,12 +12,19 @@ data "google_dns_managed_zone" "existing" {
   project = var.project_id
 }
 
+# Ensure Cloud DNS API is enabled in the target project before creating a managed zone
+resource "google_project_service" "dns_api" {
+  project = var.project_id
+  service = "dns.googleapis.com"
+}
+
 resource "google_dns_managed_zone" "created" {
   count = local.use_existing_zone ? 0 : 1
   name  = var.managed_zone_name
   dns_name = local.dns_name_normalized
   project  = var.project_id
   description = "Managed zone created by Terraform example module"
+  depends_on = [google_project_service.dns_api]
 }
 
 # Resolve the managed zone name and DNS name
