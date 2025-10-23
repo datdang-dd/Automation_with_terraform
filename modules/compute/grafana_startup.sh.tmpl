@@ -29,15 +29,6 @@ docker run -d --name grafana --restart=always \
   -e GF_SECURITY_ADMIN_USER='${grafana_admin_user}' \
   -e GF_SECURITY_ADMIN_PASSWORD='${grafana_admin_pass}' \
   -e GF_AUTH_ANONYMOUS_ENABLED=false \
-  \
-  # SMTP configuration for alerting (optional)
-  $( [ "${grafana_smtp_host}" != "" ] && echo "-e GF_SMTP_ENABLED=true \")
-  $( [ "${grafana_smtp_host}" != "" ] && echo "-e GF_SMTP_HOST='${grafana_smtp_host}' \")
-  $( [ "${grafana_smtp_port}" != "" ] && echo "-e GF_SMTP_PORT='${grafana_smtp_port}' \")
-  $( [ "${grafana_smtp_user}" != "" ] && echo "-e GF_SMTP_USER='${grafana_smtp_user}' \")
-  $( [ "${grafana_smtp_pass}" != "" ] && echo "-e GF_SMTP_PASSWORD='${grafana_smtp_pass}' \")
-  $( [ "${grafana_smtp_from}" != "" ] && echo "-e GF_SMTP_FROM_ADDRESS='${grafana_smtp_from}' \")
-  $( [ "${grafana_smtp_skip_verify}" != "false" ] && echo "-e GF_SMTP_SKIP_VERIFY='${grafana_smtp_skip_verify}' \")
   -v /opt/grafana/provisioning:/etc/grafana/provisioning \
   -v /opt/grafana/dashboards:/var/lib/grafana/dashboards \
   grafana/grafana:latest
