@@ -42,7 +42,7 @@ resource "google_monitoring_alert_policy" "cpu_high" {
       filter           = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\""
       comparison       = "COMPARISON_GT"
       threshold_value  = 0.6
-      duration         = "120s"
+      duration         = "60s"
       trigger { count  = 1 }
     }
   }
