@@ -143,3 +143,14 @@ service_account {
       "ssh-keys" = var.ssh_public_key 
     }
 }
+resource "google_compute_autoscaler" "as" {
+  name   = "web-as"
+  zone   = var.zone
+  target = google_compute_instance_group_manager.mig.id
+
+  autoscaling_policy {
+    min_replicas = var.size_min
+    max_replicas = var.size_max
+    cpu_utilization { target = 0.6 }
+  }
+}
