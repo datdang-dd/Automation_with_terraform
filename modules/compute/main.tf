@@ -1,45 +1,45 @@
 resource "google_compute_instance_template" "tpl" {
   name_prefix  = "web-tpl-"
   machine_type = var.machine_type
-  tags         = var.target_tags          # đảm bảo trong tfvars có ["web"]
+  tags         = var.target_tags
 
   service_account {
     email  = var.service_account
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
+  # Boot disk
   disk {
-    source_image = "ubuntu-os-cloud/ubuntu-2204-lts"
     auto_delete  = true
     boot         = true
     type         = "pd-balanced"
     disk_size_gb = 10
-    
-    # Enable auto snapshot policy
+    source_image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
     resource_policies = [google_compute_resource_policy.snapshot_policy.id]
   }
 
-  # NOTE: extra disks will be managed as separate `google_compute_disk` resources
-  # and attached via per-instance config / stateful disks in the MIG. That
-  # allows each instance to keep its disk across recreation.
+  # >>> Disk phụ stateful (device_name = "data")
+  disk {
+    device_name = "data"
+    auto_delete = false
+    boot        = false
+    type         = "PERSISTENT"
+    disk_type = var.extra_disk_type
+    disk_size_gb = var.extra_disk_size_gb
+  }
 
   network_interface {
-    subnetwork = var.subnetwork_self_link # VM MIG dùng IP private
-    # không thêm access_config {} để giữ private
+    subnetwork = var.subnetwork_self_link
   }
+
   lifecycle {
-    # Create the new instance template before destroying the old one so Terraform
-    # can perform a smooth swap: new template is created, MIG can be updated to
-    # use it (rolling), and only then the old template is removed.
     create_before_destroy = true
   }
 
-  # !!! chú ý: var.ssh_public_key phải là "username:<nội_dung gcp_id.pub>"
   metadata = length(var.ssh_public_key) > 0 ? {
-    "ssh-keys" = var.ssh_public_key
+    "ssh-keys"       = var.ssh_public_key
   } : null
 
-  # Mount and prepare the per-instance persistent disk named by device_name "data".
   metadata_startup_script = <<-BASH
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -52,8 +52,8 @@ resource "google_compute_instance_template" "tpl" {
     mount "$DEV" "$MNT" || true
     grep -q "$DEV" /etc/fstab || echo "$DEV $MNT ext4 defaults,nofail 0 2" >> /etc/fstab
   BASH
-
 }
+
 
 # Snapshot policy for MIG instances - creates snapshot after 7 days, deletes after another 7 days
 # This uses a weekly schedule that creates snapshots every 7 days and keeps them for 7 days
@@ -103,39 +103,13 @@ resource "google_compute_instance_group_manager" "mig" {
     max_unavailable_percent = 0
   }
 
-  # Keep the extra disk (device_name = "data") when instances are replaced
+  # Mark disk "data" là stateful → KHÔNG xoá khi thay thế VM
   stateful_disk {
     device_name = "data"
     delete_rule = "NEVER"
   }
 }
 
-# Create per-instance persistent disks in the same zone as the MIG
-resource "google_compute_disk" "data" {
-  count = var.size_min
-  name  = "web-${count.index}-data"
-  type  = var.extra_disk_type
-  zone  = var.zone
-  size  = var.extra_disk_size_gb
-}
-
-# Attach each created disk to the corresponding instance in the MIG using
-# per-instance config (preserved_state). The instance name must match the
-# name pattern used by the MIG (base_instance_name + index). Adjust if needed.
-resource "google_compute_per_instance_config" "cfg" {
-  count                 = var.size_min
-  zone                  = var.zone
-  instance_group_manager = google_compute_instance_group_manager.mig.name
-  name                  = "web-${count.index}"
-
-  preserved_state {
-    disk {
-      device_name = "data"
-      source      = google_compute_disk.data[count.index].self_link
-      mode        = "READ_WRITE"
-    }
-  }
-}
 
 # Bastion có IP PUBLIC và tag "allow-ssh1"
 resource "google_compute_instance" "bastion" {
