@@ -6,6 +6,11 @@ terraform {
     workspaces { name = "test_workspace" }
   }
 
+  # backend "gcs" {
+  #   bucket = "your-tfstate-bucket"
+  #   prefix = "env/prod"         # folder/object prefix trong bucket
+  # }
+
   required_providers {
     google = { source = "hashicorp/google", version = "~> 5.40" }
     random = { source = "hashicorp/random", version = "~> 3.6" }
