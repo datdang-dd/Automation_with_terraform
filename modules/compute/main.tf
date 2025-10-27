@@ -38,20 +38,8 @@ resource "google_compute_instance_template" "tpl" {
 
   metadata = length(var.ssh_public_key) > 0 ? {
     "ssh-keys"       = var.ssh_public_key
+    startup-script   = file("${path.module}/startup.sh")
   } : null
-
-  metadata_startup_script = <<-BASH
-    #!/usr/bin/env bash
-    set -euxo pipefail
-    DEV="/dev/disk/by-id/google-data"   # device_name = "data"
-    MNT="/mnt/data"
-    mkdir -p "$MNT"
-    if ! blkid "$DEV" >/dev/null 2>&1; then
-      mkfs.ext4 -F "$DEV"
-    fi
-    mount "$DEV" "$MNT" || true
-    grep -q "$DEV" /etc/fstab || echo "$DEV $MNT ext4 defaults,nofail 0 2" >> /etc/fstab
-  BASH
 }
 
 
