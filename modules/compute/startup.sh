@@ -1,28 +1,36 @@
-#!/bin/bash
-# Startup wrapper that ensures the instance's application startup script runs from
-# an attached extra persistent disk when available. If the script is executed
-# from the mounted extra disk path (/mnt/extra_disk), it runs the application
-# logic (install nginx, write index). Otherwise it will mount the extra disk,
-# copy itself to the extra disk, register a systemd service to run from the
-# extra disk on future boots, and then invoke the disk-resident script.
+#!/usr/bin/env bash
+set -euxo pipefail
+export DEBIAN_FRONTEND=noninteractive
 
-set -euo pipefail
+# --- Tham số khớp với instance template & MIG ---
+DEV="/dev/disk/by-id/google-data"   # phải khớp device_name = "data"
+MNT="/mnt/data"
+WWW="$MNT/www"
+LINK="/var/www/html"
 
-EXTRA_MOUNT="/mnt/extra_disk"
-DISK_SERVICE="/etc/systemd/system/extra-startup.service"
+log(){ echo "[startup] $(date -Is) $*"; }
 
-log() { echo "[startup] $(date --iso-8601=seconds) - $*"; }
+# 1) Mount đĩa stateful (tạo FS nếu mới)
+log "Mount stateful disk to $MNT"
+mkdir -p "$MNT"
+if ! blkid "$DEV" >/dev/null 2>&1; then
+  log "No filesystem on $DEV -> mkfs.ext4"
+  mkfs.ext4 -F "$DEV"
+fi
+mount "$DEV" "$MNT" || true
+grep -qE "^[^#]*\s+$MNT\s+" /etc/fstab || echo "$DEV $MNT ext4 defaults,nofail 0 2" >> /etc/fstab
 
-# Application logic: install nginx and write index page
-app_main() {
-  log "Running app logic on $(pwd)"
-  apt-get update -y
-  apt-get install -y nginx
-  systemctl enable nginx
-  systemctl start nginx
+# 2) Cài nginx (idempotent)
+log "Install & enable nginx"
+apt-get update -y
+apt-get install -y nginx
+systemctl enable nginx
 
-  mkdir -p /var/www/html
-  cat > /var/www/html/index.html <<'HTML'
+# 3) Seed nội dung web lên đĩa stateful (chỉ lần đầu)
+log "Seed web content (if empty) -> $WWW"
+mkdir -p "$WWW"
+if [ -z "$(ls -A "$WWW" 2>/dev/null)" ]; then
+  cat > "$WWW/index.html" <<'HTML'
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -259,118 +267,15 @@ app_main() {
 </body>
 </html>
 HTML
-}
-
-# Find the root disk base name (e.g. sda)
-root_src=$(findmnt -n -o SOURCE / || true)
-root_base=""
-if [ -n "$root_src" ]; then
-  # if root is /dev/sda1 etc, get parent disk name
-  if [[ "$root_src" =~ ^/dev/ ]]; then
-    # try to get PKNAME via lsblk; fallback to stripping trailing digits
-    root_base=$(lsblk -no PKNAME "$root_src" 2>/dev/null || true)
-    if [ -z "$root_base" ]; then
-      root_base=$(basename "$root_src" | sed 's/[0-9]*$//')
-    fi
-  fi
 fi
 
-if [[ "$0" == "$EXTRA_MOUNT"* ]]; then
-  # We're running from the extra disk - do not attempt to copy again: run app
-  log "Detected execution from extra disk. Running app_main"
-  app_main
-  exit 0
+# 4) Trỏ docroot của nginx về thư mục trên đĩa stateful (symlink an toàn)
+log "Point nginx docroot to $WWW via symlink $LINK"
+if [ -d "$LINK" ] && [ ! -L "$LINK" ]; then
+  rm -rf "$LINK"
 fi
+ln -sfn "$WWW" "$LINK"
 
-# Try to find the first non-root, non-mounted disk to use as extra disk
-extra_dev=""
-while read -r line; do
-  dev="/dev/$line"
-  # skip if this is root disk
-  if [ "$line" = "$root_base" ]; then
-    continue
-  fi
-  # skip loop devices
-  type=$(lsblk -no TYPE "$dev" 2>/dev/null || true)
-  if [ "$type" != "disk" ]; then
-    continue
-  fi
-  # check if any partitions or mounts exist on this disk
-  mountpoints=$(lsblk -no MOUNTPOINT "$dev" 2>/dev/null || true)
-  if [ -n "$mountpoints" ]; then
-    # if all mountpoints are empty lines, consider unmounted; else skip
-    if echo "$mountpoints" | grep -q '\S'; then
-      continue
-    fi
-  fi
-  extra_dev="$dev"
-  break
-done < <(lsblk -dn -o NAME)
-
-if [ -z "$extra_dev" ]; then
-  log "No extra disk found; running app on boot disk"
-  app_main
-  exit 0
-fi
-
-log "Found extra disk: $extra_dev"
-
-# Create mount point and format/mount if needed
-mkdir -p "$EXTRA_MOUNT"
-
-# Determine whether device has a filesystem
-if ! blkid "$extra_dev" >/dev/null 2>&1; then
-  log "No filesystem found on $extra_dev - creating ext4"
-  # Create a single partition-less filesystem on the whole disk
-  mkfs.ext4 -F "$extra_dev"
-fi
-
-# Compute UUID and add to fstab if not present
-uuid=$(blkid -s UUID -o value "$extra_dev" || true)
-if [ -z "$uuid" ]; then
-  log "Unable to read UUID from $extra_dev; mounting by device name"
-  if ! grep -qs "$EXTRA_MOUNT" /proc/mounts; then
-    mount "$extra_dev" "$EXTRA_MOUNT"
-  fi
-else
-  if ! grep -qs "$uuid" /etc/fstab; then
-    echo "UUID=$uuid $EXTRA_MOUNT ext4 defaults,nofail 0 2" >> /etc/fstab
-  fi
-  if ! mountpoint -q "$EXTRA_MOUNT"; then
-    mount "$EXTRA_MOUNT"
-  fi
-fi
-
-log "Extra disk mounted at $EXTRA_MOUNT"
-
-# Copy this script to the extra disk and install systemd unit to run it from there
-mkdir -p "$EXTRA_MOUNT/startup"
-cp "$0" "$EXTRA_MOUNT/startup/startup.sh" || {
-  # if $0 is not a file (metadata runner), fetch from metadata server
-  curl -fsS -H "Metadata-Flavor: Google" "http://169.254.169.254/computeMetadata/v1/instance/attributes/startup-script" -o "$EXTRA_MOUNT/startup/startup.sh" || true
-}
-chmod +x "$EXTRA_MOUNT/startup/startup.sh" || true
-
-cat > "$DISK_SERVICE" <<EOF
-[Unit]
-Description=Extra-disk startup runner
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=$EXTRA_MOUNT/startup/startup.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload || true
-systemctl enable --now extra-startup.service || true
-
-log "Started disk-resident startup script via systemd"
-
-# Optionally run the disk-resident script now (non-blocking)
-nohup "$EXTRA_MOUNT/startup/startup.sh" >/var/log/extra-startup.log 2>&1 &
-
-log "Wrapper finished"
+# 5) Khởi động/restart nginx để áp dụng
+systemctl restart nginx
+log "Startup completed"
