@@ -97,7 +97,9 @@ resource "google_compute_region_instance_group_manager" "mig" {
   update_policy {
     type = "PROACTIVE"
     minimal_action = "RESTART"
-    max_surge_fixed = 1
+    # For regional MIGs, max_surge.fixed must be 0 or at least equal to the
+    # number of zones in the region. Setting to 0 is safe and compatible.
+    max_surge_fixed = 0
     # GCP requires max_unavailable > 0 when minimal_action is REFRESH or RESTART
     # set to 1 to allow one instance to be unavailable during rolling update
     max_unavailable_fixed = 1
