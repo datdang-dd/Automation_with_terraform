@@ -18,3 +18,7 @@ variable "admin_email" {
   type        = string
   default     = ""
 }
+variable "manage_apis" { 
+  type = bool 
+  default = false 
+}

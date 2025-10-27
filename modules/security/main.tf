@@ -1,26 +1,32 @@
+resource "google_project_service" "enable_monitoring" {
+  count   = var.manage_apis ? 1 : 0
+  project = var.project_id
+  service = "monitoring.googleapis.com"
+  disable_on_destroy = false   # luôn giữ API khi destroy
+}
+
+resource "google_project_service" "enable_logging" {
+  count   = var.manage_apis ? 1 : 0
+  project = var.project_id
+  service = "logging.googleapis.com"
+  disable_on_destroy = false
+}
+
 # Bật Cloud Resource Manager API để thao tác IAM trên Project
 resource "google_project_service" "enable_crm" {
+  count   = var.manage_apis ? 1 : 0
   project = var.project_id
   service = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
 }
 
 # (Nếu chưa có) đã bật IAM API
 resource "google_project_service" "enable_iam" {
   project = var.project_id
   service = "iam.googleapis.com"
+  disable_on_destroy = false
 }
 
-# Enable Monitoring API for Grafana
-resource "google_project_service" "enable_monitoring" {
-  project = var.project_id
-  service = "monitoring.googleapis.com"
-}
-
-# Enable Logging API for Grafana
-resource "google_project_service" "enable_logging" {
-  project = var.project_id
-  service = "logging.googleapis.com"
-}
 
 resource "google_service_account" "sa" {
   depends_on   = [

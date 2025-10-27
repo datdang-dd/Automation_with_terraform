@@ -19,18 +19,9 @@ resource "google_compute_instance_template" "tpl" {
     resource_policies = [google_compute_resource_policy.snapshot_policy.id]
   }
 
-  # Optional extra persistent (non-boot) disk attached to each instance created from
-  # this template. This disk is created with `auto_delete = false` by default so it
-  # will remain available when the instance is deleted.
-  dynamic "disk" {
-    for_each = var.extra_disk_enabled ? [1] : []
-    content {
-      auto_delete  = var.extra_disk_auto_delete
-      boot         = false
-      type         = var.extra_disk_type
-      disk_size_gb = var.extra_disk_size_gb
-    }
-  }
+  # NOTE: extra disks will be managed as separate `google_compute_disk` resources
+  # and attached via per-instance config / stateful disks in the MIG. That
+  # allows each instance to keep its disk across recreation.
 
   network_interface {
     subnetwork = var.subnetwork_self_link # VM MIG dùng IP private
@@ -44,10 +35,23 @@ resource "google_compute_instance_template" "tpl" {
   }
 
   # !!! chú ý: var.ssh_public_key phải là "username:<nội_dung gcp_id.pub>"
-  metadata = length(var.ssh_public_key) > 0 ? { 
-    ssh-keys = var.ssh_public_key 
-    startup-script = file("${path.module}/startup.sh")
-    } : null
+  metadata = length(var.ssh_public_key) > 0 ? {
+    "ssh-keys" = var.ssh_public_key
+  } : null
+
+  # Mount and prepare the per-instance persistent disk named by device_name "data".
+  metadata_startup_script = <<-BASH
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    DEV="/dev/disk/by-id/google-data"   # device_name = "data"
+    MNT="/mnt/data"
+    mkdir -p "$MNT"
+    if ! blkid "$DEV" >/dev/null 2>&1; then
+      mkfs.ext4 -F "$DEV"
+    fi
+    mount "$DEV" "$MNT" || true
+    grep -q "$DEV" /etc/fstab || echo "$DEV $MNT ext4 defaults,nofail 0 2" >> /etc/fstab
+  BASH
 
 }
 
@@ -84,37 +88,52 @@ resource "google_compute_resource_policy" "snapshot_policy" {
   }
 }
 
-resource "google_compute_region_instance_group_manager" "mig" {
-  name               = "web-mig"
-  region             = var.region
+resource "google_compute_instance_group_manager" "mig" {
+  name               = "web-mig-zonal"
+  zone               = var.zone
   base_instance_name = "web"
+  target_size        = var.size_min
 
   version { instance_template = google_compute_instance_template.tpl.id }
-  target_size = var.size_min
-  
-  # Rolling update policy so new instances coming from a new template are
-  # created progressively and old instances removed safely.
+
   update_policy {
-    type = "PROACTIVE"
-    minimal_action = "RESTART"
-    # For regional MIGs, max_surge.fixed must be 0 or at least equal to the
-    # number of zones in the region. Setting to 0 is safe and compatible.
-    max_surge_fixed = 0
-    # GCP requires max_unavailable > 0 when minimal_action is REFRESH or RESTART
-    # set to 1 to allow one instance to be unavailable during rolling update
-    max_unavailable_fixed = 1
+    type                    = "PROACTIVE"
+    minimal_action          = "REPLACE"
+    max_surge_percent       = 50
+    max_unavailable_percent = 0
+  }
+
+  # Keep the extra disk (device_name = "data") when instances are replaced
+  stateful_disk {
+    device_name = "data"
+    delete_rule = "NEVER"
   }
 }
 
-resource "google_compute_region_autoscaler" "as" {
-  name   = "web-as"
-  region = var.region
-  target = google_compute_region_instance_group_manager.mig.id
+# Create per-instance persistent disks in the same zone as the MIG
+resource "google_compute_disk" "data" {
+  count = var.size_min
+  name  = "web-${count.index}-data"
+  type  = var.extra_disk_type
+  zone  = var.zone
+  size  = var.extra_disk_size_gb
+}
 
-  autoscaling_policy {
-    min_replicas = var.size_min
-    max_replicas = var.size_max
-    cpu_utilization { target = 0.6 }
+# Attach each created disk to the corresponding instance in the MIG using
+# per-instance config (preserved_state). The instance name must match the
+# name pattern used by the MIG (base_instance_name + index). Adjust if needed.
+resource "google_compute_per_instance_config" "cfg" {
+  count                 = var.size_min
+  zone                  = var.zone
+  instance_group_manager = google_compute_instance_group_manager.mig.name
+  name                  = "web-${count.index}"
+
+  preserved_state {
+    disk {
+      device_name = "data"
+      source      = google_compute_disk.data[count.index].self_link
+      mode        = "READ_WRITE"
+    }
   }
 }
 
