@@ -2,24 +2,28 @@
 resource "google_project_service" "enable_crm" {
   project = var.project_id
   service = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
 }
 
 # (Nếu chưa có) đã bật IAM API
 resource "google_project_service" "enable_iam" {
   project = var.project_id
   service = "iam.googleapis.com"
+  disable_on_destroy = false
 }
 
 # Enable Monitoring API for Grafana
 resource "google_project_service" "enable_monitoring" {
   project = var.project_id
   service = "monitoring.googleapis.com"
+  disable_on_destroy = false
 }
 
 # Enable Logging API for Grafana
 resource "google_project_service" "enable_logging" {
   project = var.project_id
   service = "logging.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_service_account" "sa" {
