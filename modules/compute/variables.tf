@@ -36,3 +36,27 @@ variable "grafana_allowed_cidr" {
   type        = string
   default     = "0.0.0.0/0" # change to your office IP/CIDR
 }
+
+variable "extra_disk_enabled" {
+  description = "Whether to create and attach an extra persistent disk to each MIG instance."
+  type        = bool
+  default     = true
+}
+
+variable "extra_disk_size_gb" {
+  description = "Size (GB) for the extra persistent disk attached to each instance when enabled."
+  type        = number
+  default     = 10
+}
+
+variable "extra_disk_type" {
+  description = "Disk type for the extra persistent disk (e.g. pd-standard, pd-balanced, pd-ssd)."
+  type        = string
+  default     = "pd-balanced"
+}
+
+variable "extra_disk_auto_delete" {
+  description = "Whether the extra persistent disk should be auto-deleted when the instance is deleted. Set false to preserve the disk."
+  type        = bool
+  default     = false
+}

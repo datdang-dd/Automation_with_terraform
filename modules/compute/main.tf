@@ -19,13 +19,26 @@ resource "google_compute_instance_template" "tpl" {
     resource_policies = [google_compute_resource_policy.snapshot_policy.id]
   }
 
+  # Optional extra persistent (non-boot) disk attached to each instance created from
+  # this template. This disk is created with `auto_delete = false` by default so it
+  # will remain available when the instance is deleted.
+  dynamic "disk" {
+    for_each = var.extra_disk_enabled ? [1] : []
+    content {
+      auto_delete  = var.extra_disk_auto_delete
+      boot         = false
+      type         = var.extra_disk_type
+      disk_size_gb = var.extra_disk_size_gb
+    }
+  }
+
   network_interface {
     subnetwork = var.subnetwork_self_link # VM MIG dùng IP private
     # không thêm access_config {} để giữ private
   }
   lifecycle {
-    prevent_destroy = true          # KHÔNG cho phép xóa
-    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    prevent_destroy = false          # KHÔNG cho phép xóa
+    //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
   # !!! chú ý: var.ssh_public_key phải là "username:<nội_dung gcp_id.pub>"
