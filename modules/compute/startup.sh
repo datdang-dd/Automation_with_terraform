@@ -216,7 +216,7 @@ if [ -z "$(ls -A "$WWW" 2>/dev/null)" ]; then
   <main>
     <!-- Phần Hero Banner -->
     <section class="hero" id="home">
-      <h1>Chào Mừng Đến Với Trang Web Của Tôi</h1>
+      <h1>Chào Mừng Đến Với Trang Web </h1>
       <p>Một nơi đơn giản để chia sẻ thông tin và ý tưởng.</p>
       <a href="#about" class="cta-button">Tìm Hiểu Thêm</a>
     </section>
