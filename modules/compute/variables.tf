@@ -13,7 +13,7 @@ variable "service_account"      { type = string }
 variable "size_min" { 
     type = number
     default = 2 
-    }
+  }
 variable "size_max"  { 
     type = number
     default = 4

@@ -37,8 +37,10 @@ resource "google_compute_instance_template" "tpl" {
     # không thêm access_config {} để giữ private
   }
   lifecycle {
-    prevent_destroy = false          # KHÔNG cho phép xóa
-    //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    # Create the new instance template before destroying the old one so Terraform
+    # can perform a smooth swap: new template is created, MIG can be updated to
+    # use it (rolling), and only then the old template is removed.
+    create_before_destroy = true
   }
 
   # !!! chú ý: var.ssh_public_key phải là "username:<nội_dung gcp_id.pub>"
@@ -89,6 +91,15 @@ resource "google_compute_region_instance_group_manager" "mig" {
 
   version { instance_template = google_compute_instance_template.tpl.id }
   target_size = var.size_min
+  
+  # Rolling update policy so new instances coming from a new template are
+  # created progressively and old instances removed safely.
+  update_policy {
+    type = "PROACTIVE"
+    minimal_action = "RESTART"
+    max_surge_fixed = 1
+    max_unavailable_fixed = 0
+  }
 }
 
 resource "google_compute_region_autoscaler" "as" {
