@@ -65,6 +65,8 @@ module "compute" {
   project_id = var.project_id
   grafana_admin_user = "admin"
   grafana_admin_pass = var.grafana_admin_pass
+  bucket_name       = var.bucket_name
+  app_version = var.app_version
 }
 
 # 4) Load Balancer (HTTP/HTTPS) with Simple Web Security
@@ -78,10 +80,9 @@ module "lb" {
 # 5) Storage (Bucket + optional access bindings)
 module "storage" {
   source            = "./modules/storage"
-
   region            = var.region
   project_id        = var.project_id
-  bucket_name_opt   = var.bucket_name
+  bucket_name       = var.bucket_name
   downloader_emails = var.downloader_emails
 }
 

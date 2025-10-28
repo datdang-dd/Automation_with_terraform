@@ -29,7 +29,7 @@ variable "ssh_public_key" {
 
 variable "bucket_name"       { 
   type = string
-  default = null 
+  default = "my-static-web-bucket" 
 }
 variable "downloader_emails" { 
   type = list(string)
@@ -60,4 +60,8 @@ variable "grafana_allowed_cidr" {
   description = "CIDR allowed to access Grafana (port 3000)"
   type        = string
   default     = "0.0.0.0/0" # change to your office IP/CIDR
+}
+variable "app_version" {
+  type = string
+  default = "1.0.0"
 }

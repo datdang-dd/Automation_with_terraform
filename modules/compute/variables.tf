@@ -60,3 +60,13 @@ variable "extra_disk_auto_delete" {
   type        = bool
   default     = false
 }
+
+variable "bucket_name" {
+  description = "GCS bucket name which stores web artifact zip"
+  type        = string
+}
+
+variable "app_version" {
+  description = "Application artifact version string, e.g. 2025-10-28.2"
+  type        = string
+}
