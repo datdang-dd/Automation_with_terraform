@@ -3,9 +3,6 @@ resource "google_project_service" "enable_monitoring" {
   project = var.project_id
   service = "monitoring.googleapis.com"
   disable_on_destroy = false   # luôn giữ API khi destroy
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "google_project_service" "enable_logging" {
@@ -13,9 +10,6 @@ resource "google_project_service" "enable_logging" {
   project = var.project_id
   service = "logging.googleapis.com"
   disable_on_destroy = false
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # Bật Cloud Resource Manager API để thao tác IAM trên Project
@@ -24,9 +18,6 @@ resource "google_project_service" "enable_crm" {
   project = var.project_id
   service = "cloudresourcemanager.googleapis.com"
   disable_on_destroy = false
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # (Nếu chưa có) đã bật IAM API
@@ -34,9 +25,6 @@ resource "google_project_service" "enable_iam" {
   project = var.project_id
   service = "iam.googleapis.com"
   disable_on_destroy = false
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 
