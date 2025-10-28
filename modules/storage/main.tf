@@ -19,7 +19,7 @@ resource "google_storage_bucket" "bucket" {
 
   lifecycle {
     prevent_destroy = false          # KHÔNG cho phép xóa
-    //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
 }
