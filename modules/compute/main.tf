@@ -37,9 +37,11 @@ resource "google_compute_instance_template" "tpl" {
   }
 
   metadata = length(var.ssh_public_key) > 0 ? {
-    "ssh-keys"       = var.ssh_public_key
-    startup-script   = file("${path.module}/startup.sh")
-  } : null
+    "ssh-keys" = var.ssh_public_key
+    "APP_ARTIFACT" = "gs://${var.bucket_name}/site-v${var.app_version}.zip"
+  } : { "APP_ARTIFACT" = "gs://${var.bucket_name}/site-v${var.app_version}.zip" }
+
+  metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
 
 

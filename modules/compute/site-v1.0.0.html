@@ -1,36 +1,3 @@
-#!/usr/bin/env bash
-set -euxo pipefail
-export DEBIAN_FRONTEND=noninteractive
-
-# --- Tham số khớp với instance template & MIG ---
-DEV="/dev/disk/by-id/google-data"   # phải khớp device_name = "data"
-MNT="/mnt/data"
-WWW="$MNT/www"
-LINK="/var/www/html"
-
-log(){ echo "[startup] $(date -Is) $*"; }
-
-# 1) Mount đĩa stateful (tạo FS nếu mới)
-log "Mount stateful disk to $MNT"
-mkdir -p "$MNT"
-if ! blkid "$DEV" >/dev/null 2>&1; then
-  log "No filesystem on $DEV -> mkfs.ext4"
-  mkfs.ext4 -F "$DEV"
-fi
-mount "$DEV" "$MNT" || true
-grep -qE "^[^#]*\s+$MNT\s+" /etc/fstab || echo "$DEV $MNT ext4 defaults,nofail 0 2" >> /etc/fstab
-
-# 2) Cài nginx (idempotent)
-log "Install & enable nginx"
-apt-get update -y
-apt-get install -y nginx
-systemctl enable nginx
-
-# 3) Seed nội dung web lên đĩa stateful (chỉ lần đầu)
-log "Seed web content (if empty) -> $WWW"
-mkdir -p "$WWW"
-if [ -z "$(ls -A "$WWW" 2>/dev/null)" ]; then
-  cat > "$WWW/index.html" <<'HTML'
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -266,16 +233,3 @@ if [ -z "$(ls -A "$WWW" 2>/dev/null)" ]; then
 
 </body>
 </html>
-HTML
-fi
-
-# 4) Trỏ docroot của nginx về thư mục trên đĩa stateful (symlink an toàn)
-log "Point nginx docroot to $WWW via symlink $LINK"
-if [ -d "$LINK" ] && [ ! -L "$LINK" ]; then
-  rm -rf "$LINK"
-fi
-ln -sfn "$WWW" "$LINK"
-
-# 5) Khởi động/restart nginx để áp dụng
-systemctl restart nginx
-log "Startup completed"

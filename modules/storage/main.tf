@@ -1,7 +1,5 @@
-resource "random_id" "suffix" { byte_length = 3 }
-
 locals {
-  name = coalesce(var.bucket_name_opt, "demo1-tf-bucket-${var.project_id}-${random_id.suffix.hex}")
+  name = var.bucket_name
 }
 
 resource "google_storage_bucket" "bucket" {
@@ -20,8 +18,8 @@ resource "google_storage_bucket" "bucket" {
   labels = { purpose = "practice", managed = "terraform" }
 
   lifecycle {
-    prevent_destroy = true          # KHÔNG cho phép xóa
-    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    prevent_destroy = false          # KHÔNG cho phép xóa
+    //ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
   }
 
 }
