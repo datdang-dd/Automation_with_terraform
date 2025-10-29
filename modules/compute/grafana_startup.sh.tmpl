@@ -72,15 +72,15 @@ fi
 # c) Nếu thư mục trống, tạo README gợi ý
 if [ -z "$(ls -A /opt/infra 2>/dev/null)" ]; then
   cat >/opt/infra/README.md <<'DOC'
-# /opt/infra
-Đặt mã Terraform của bạn vào đây, hoặc dùng metadata:
-- INFRA_GIT_URL: repo Git cần clone
-- INFRA_GCS_ZIP: file zip chứa mã hạ tầng
+# # /opt/infra
+# Đặt mã Terraform của bạn vào đây, hoặc dùng metadata:
+# - INFRA_GIT_URL: repo Git cần clone
+# - INFRA_GCS_ZIP: file zip chứa mã hạ tầng
 
-Ví dụ chạy:
-  cd /opt/infra
-  terraform init
-  terraform plan
+# Ví dụ chạy:
+#   cd /opt/infra
+#   terraform init
+#   terraform plan
 DOC
 fi
 
