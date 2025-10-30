@@ -1,101 +1,15 @@
 #!/usr/bin/env bash
 set -euxo pipefail
-export DEBIAN_FRONTEND=noninteractive
 
-# ===== 0) Biến từ Terraform (templatefile) =====
-PROJECT_ID="${project_id}"
-GRAFANA_ADMIN_USER="${grafana_admin_user}"
-GRAFANA_ADMIN_PASS="${grafana_admin_pass}"
-
-# (Tùy chọn) đọc thêm metadata cho workspace Terraform in-house
-META="http://169.254.169.254/computeMetadata/v1/instance/attributes"
-INFRA_GIT_URL="$(curl -fsS -H 'Metadata-Flavor: Google' $META/INFRA_GIT_URL || true)"     # vd: https://github.com/you/infra.git
-INFRA_GCS_ZIP="$(curl -fsS -H 'Metadata-Flavor: Google' $META/INFRA_GCS_ZIP || true)"     # vd: gs://your-bucket/infra.zip
-
-# ===== 1) Cài base packages =====
+# Cài Docker
 apt-get update -y
-apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common unzip
-
-# ===== 2) Cài Google Cloud CLI (có gsutil) =====
-# Theo hướng dẫn chính thức (APT repo)
-if ! command -v gcloud >/dev/null 2>&1; then
-  echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
-    | tee /etc/apt/sources.list.d/google-cloud-sdk.list
-  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-    | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-  apt-get update -y
-  apt-get install -y google-cloud-cli
-fi
-
-# ===== 3) Cài Terraform (HashiCorp repo) =====
-if ! command -v terraform >/dev/null 2>&1; then
-  curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp.gpg
-  echo "deb [signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-    | tee /etc/apt/sources.list.d/hashicorp.list
-  apt-get update -y
-  apt-get install -y terraform
-fi
-
-# ===== 4) Chuẩn bị môi trường CLI =====
-# Bastion đang có Service Account gắn kèm VM + scope cloud-platform => ADC hoạt động luôn.
-# Chỉ cần export PROJECT_ID để tiện dùng.
-grep -q 'PROJECT_ID=' /etc/profile || cat >> /etc/profile <<EOF
-export PROJECT_ID="${PROJECT_ID}"
-EOF
-
-# Warm-up ADC (không bắt buộc)
-gcloud --version >/dev/null
-gcloud auth application-default print-access-token >/dev/null || true
-
-# ===== 5) Chuẩn bị workspace Terraform in-house (tùy chọn kéo code) =====
-install -d -m 755 /opt/infra
-chown -R root:root /opt/infra
-
-# a) Nếu có repo Git, clone/cập nhật
-if [ -n "${INFRA_GIT_URL}" ]; then
-  apt-get install -y git
-  if [ ! -d /opt/infra/.git ]; then
-    git clone "${INFRA_GIT_URL}" /opt/infra
-  else
-    (cd /opt/infra && git fetch --all && git reset --hard origin/HEAD || true)
-  fi
-fi
-
-# b) Nếu có zip trên GCS, tải và giải nén
-if [ -n "${INFRA_GCS_ZIP}" ]; then
-  TMP_ZIP="/tmp/infra.zip"
-  gsutil cp "${INFRA_GCS_ZIP}" "${TMP_ZIP}"
-  rm -rf /opt/infra/*
-  unzip -o "${TMP_ZIP}" -d /opt/infra
-fi
-
-# c) Nếu thư mục trống, tạo README gợi ý
-if [ -z "$(ls -A /opt/infra 2>/dev/null)" ]; then
-  cat >/opt/infra/README.md <<'DOC'
-# # /opt/infra
-# Đặt mã Terraform của bạn vào đây, hoặc dùng metadata:
-# - INFRA_GIT_URL: repo Git cần clone
-# - INFRA_GCS_ZIP: file zip chứa mã hạ tầng
-
-# Ví dụ chạy:
-#   cd /opt/infra
-#   terraform init
-#   terraform plan
-DOC
-fi
-
-# ===== 6) Cài Docker + chạy Grafana container (như trước) =====
 apt-get install -y docker.io
-systemctl enable --now docker || true
 
-# Chờ docker sẵn sàng
-for i in $(seq 1 30); do
-  if docker info >/dev/null 2>&1; then break; fi
-  sleep 2
-done
-
-# Provisioning Grafana datasource (Google Cloud Monitoring với ADC)
+# Thư mục provisioning cho Grafana
 install -d -m 755 /opt/grafana/provisioning/datasources
+install -d -m 755 /opt/grafana/dashboards
+
+# Datasource Google Cloud Monitoring dùng ADC (GCE default service account)
 cat >/opt/grafana/provisioning/datasources/stackdriver.yaml <<EOF
 apiVersion: 1
 datasources:
@@ -105,19 +19,16 @@ datasources:
     isDefault: true
     jsonData:
       authenticationType: gce
-      defaultProject: ${PROJECT_ID}
+      defaultProject: ${project_id}
 EOF
 
-docker rm -f grafana >/dev/null 2>&1 || true
-docker run -d --name grafana --restart=always -p 3000:3000 \
-  -e "GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}" \
-  -e "GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}" \
-  -e "GF_AUTH_ANONYMOUS_ENABLED=false" \
+# Chạy Grafana (KHÔNG mount SA JSON, KHÔNG set GOOGLE_APPLICATION_CREDENTIALS)
+docker rm -f grafana || true
+docker run -d --name grafana --restart=always \
+  -p 3000:3000 \
+  -e GF_SECURITY_ADMIN_USER='${grafana_admin_user}' \
+  -e GF_SECURITY_ADMIN_PASSWORD='${grafana_admin_pass}' \
+  -e GF_AUTH_ANONYMOUS_ENABLED=false \
   -v /opt/grafana/provisioning:/etc/grafana/provisioning \
+  -v /opt/grafana/dashboards:/var/lib/grafana/dashboards \
   grafana/grafana:latest
-
-# ===== 7) In ra versions để xác nhận =====
-echo "== CLI versions =="
-gcloud --version || true
-terraform -version || true
-docker --version || true
