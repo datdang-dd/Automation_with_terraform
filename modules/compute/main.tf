@@ -142,6 +142,7 @@ service_account {
       GRAFANA_ADMIN_USER   = var.grafana_admin_user
       GRAFANA_ADMIN_PASS   = var.grafana_admin_pass
       PROJECT_ID_OVERRIDE  = var.project_id
+      PROJECT_ID          = var.project_id 
       "ssh-keys" = var.ssh_public_key 
     }
 }
