@@ -2,20 +2,17 @@
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-# ===== Mount external disk (bastion-data) =====
-DISK_DEV="/dev/disk/by-id/google-bastion-data"   # phải trùng attached_disk.device_name="bastion-data"
-MNT="/mnt/bastion-data"
-
-if [ -e "$DISK_DEV" ]; then
-  mkdir -p "$MNT"
-  if ! blkid "$DISK_DEV" >/dev/null 2>&1; then
-    mkfs.ext4 -F "$DISK_DEV"
+# ===== Mount external disk trực tiếp =====
+if [ -e "/dev/disk/by-id/google-bastion-data" ]; then
+  mkdir -p "/mnt/bastion-data"
+  if ! blkid "/dev/disk/by-id/google-bastion-data" >/dev/null 2>&1; then
+    mkfs.ext4 -F "/dev/disk/by-id/google-bastion-data"
   fi
-  mountpoint -q "$MNT" || mount "$DISK_DEV" "$MNT"
-  grep -qE "^[^#]*${DISK_DEV}[[:space:]]+${MNT}[[:space:]]" /etc/fstab || \
-    echo "$DISK_DEV  $MNT  ext4  defaults,nofail  0  2" >> /etc/fstab
+  mountpoint -q "/mnt/bastion-data" || mount "/dev/disk/by-id/google-bastion-data" "/mnt/bastion-data"
+  grep -qE "^[^#]*/dev/disk/by-id/google-bastion-data[[:space:]]+/mnt/bastion-data[[:space:]]" /etc/fstab || \
+    echo "/dev/disk/by-id/google-bastion-data  /mnt/bastion-data  ext4  defaults,nofail  0  2" >> /etc/fstab
 else
-  echo "ERROR: $DISK_DEV not found. Check attached_disk.device_name = bastion-data" >&2
+  echo "ERROR: /dev/disk/by-id/google-bastion-data not found. Check attached_disk.device_name=bastion-data" >&2
 fi
 
 # ===== Install & warm-up Docker =====
@@ -23,33 +20,23 @@ apt-get update -y
 apt-get install -y docker.io
 systemctl enable --now docker
 
-# Chờ Docker sẵn sàng (tối đa 60s)
 for i in $(seq 1 30); do
   if docker info >/dev/null 2>&1; then break; fi
   sleep 2
 done
-docker info >/dev/null 2>&1 || { echo "Docker not ready"; journalctl -u docker --no-pager -n 200; exit 1; }
+docker info >/dev/null 2>&1 || { echo "Docker not ready"; exit 1; }
 
-# ===== Prepare Grafana dirs on external disk =====
-# Grafana image chạy với UID/GID = 472
-UID=472
-GID=472
+# ===== Prepare Grafana dirs trực tiếp trên ổ ngoài =====
+mkdir -p "/mnt/bastion-data/grafana/provisioning/datasources" \
+         "/mnt/bastion-data/grafana/dashboards" \
+         "/mnt/bastion-data/grafana/data"
 
-G_ROOT="$MNT/grafana"
-G_PROV="$G_ROOT/provisioning"
-G_DS="$G_PROV/datasources"
-G_DASH="$G_ROOT/dashboards"
-G_DATA="$G_ROOT/data"
+chown -R 472:472 "/mnt/bastion-data/grafana"
+find "/mnt/bastion-data/grafana" -type d -exec chmod 755 {} \;
+find "/mnt/bastion-data/grafana" -type f -exec chmod 644 {} \;
 
-mkdir -p "$G_DS" "$G_DASH" "$G_DATA"
-
-# Quyền CHÍNH XÁC để Grafana ghi được
-chown -R $UID:$GID "$G_ROOT"
-find "$G_ROOT" -type d -exec chmod 755 {} \;
-find "$G_ROOT" -type f -exec chmod 644 {} \;
-
-# Datasource Stackdriver (Cloud Monitoring) dùng ADC (GCE)
-cat >"$G_DS/stackdriver.yaml" <<EOF
+# ===== Tạo datasource Stackdriver =====
+cat >"/mnt/bastion-data/grafana/provisioning/datasources/stackdriver.yaml" <<EOF
 apiVersion: 1
 datasources:
   - name: Google Cloud Monitoring
@@ -60,23 +47,23 @@ datasources:
       authenticationType: gce
       defaultProject: ${project_id}
 EOF
-chown $UID:$GID "$G_DS/stackdriver.yaml"
+chown 472:472 "/mnt/bastion-data/grafana/provisioning/datasources/stackdriver.yaml"
 
-# ===== Pull image & Run Grafana on external disk =====
-docker pull grafana/grafana:latest || true
+# ===== Run Grafana với data nằm hoàn toàn trên ổ ngoài =====
 docker rm -f grafana >/dev/null 2>&1 || true
+docker pull grafana/grafana:latest || true
 
 docker run -d --name grafana --restart=always \
   -p 3000:3000 \
   -e GF_SECURITY_ADMIN_USER="${grafana_admin_user}" \
   -e GF_SECURITY_ADMIN_PASSWORD="${grafana_admin_pass}" \
   -e GF_AUTH_ANONYMOUS_ENABLED=false \
-  -v "$G_PROV:/etc/grafana/provisioning" \
-  -v "$G_DASH:/var/lib/grafana/dashboards" \
-  -v "$G_DATA:/var/lib/grafana" \
+  -v "/mnt/bastion-data/grafana/provisioning:/etc/grafana/provisioning" \
+  -v "/mnt/bastion-data/grafana/dashboards:/var/lib/grafana/dashboards" \
+  -v "/mnt/bastion-data/grafana/data:/var/lib/grafana" \
   grafana/grafana:latest
 
-# In tình trạng để debug nhanh
-sleep 2
+# ===== Debug nhanh =====
+sleep 3
 docker ps || true
-docker logs grafana --tail=100 || true
+docker logs grafana --tail=50 || true
