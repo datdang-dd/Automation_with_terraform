@@ -101,6 +101,21 @@ resource "google_compute_instance_group_manager" "mig" {
   }
 }
 
+resource "google_compute_disk" "bastion_data" {
+  name  = "bastion-data-disk"
+  type  = "pd-balanced"
+  zone  = var.zone
+  size  = 20   
+
+  lifecycle {
+    prevent_destroy = true   # chống destroy nhầm
+  }
+
+  labels = {
+    purpose = "bastion-data"
+    managed = "terraform"
+  }  
+}
 
 # Bastion có IP PUBLIC và tag "allow-ssh1"
 resource "google_compute_instance" "bastion" {
@@ -111,6 +126,12 @@ resource "google_compute_instance" "bastion" {
 
   boot_disk {
     initialize_params { image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts" }
+  }
+
+  attached_disk {
+    source      = google_compute_disk.bastion_data.id
+    device_name = "bastion-data"
+    mode        = "READ_WRITE"
   }
 
   network_interface {

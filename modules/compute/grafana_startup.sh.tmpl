@@ -1,16 +1,48 @@
 #!/usr/bin/env bash
 set -euxo pipefail
+export DEBIAN_FRONTEND=noninteractive
 
-# Cài Docker
+PROJECT_ID='${project_id}'
+GRAFANA_ADMIN_USER='${grafana_admin_user}'
+GRAFANA_ADMIN_PASS='${grafana_admin_pass}'
+
+# ===== Mount external disk (bastion-data) =====
+DISK_DEV="/dev/disk/by-id/google-bastion-data"
+MNT="/mnt/bastion-data"
+
+if [ -e "$DISK_DEV" ]; then
+  mkdir -p "$MNT"
+  if ! blkid "$DISK_DEV" >/dev/null 2>&1; then
+    mkfs.ext4 -F "$DISK_DEV"
+  fi
+  # mount idempotent
+  mountpoint -q "$MNT" || mount "$DISK_DEV" "$MNT"
+  grep -q "$DISK_DEV" /etc/fstab || echo "$DISK_DEV  $MNT  ext4  defaults,nofail  0  2" >> /etc/fstab
+else
+  echo "ERROR: $DISK_DEV not found. Check attached_disk.device_name = bastion-data" >&2
+fi
+
+# ===== Install Docker =====
 apt-get update -y
 apt-get install -y docker.io
+systemctl enable --now docker
 
-# Thư mục provisioning cho Grafana
-install -d -m 755 /opt/grafana/provisioning/datasources
-install -d -m 755 /opt/grafana/dashboards
+# ===== Prepare Grafana dirs on external disk =====
+# Grafana container chạy với UID 472
+GID=472
+UID=472
+G_ROOT="$MNT/grafana"
+G_PROV="$G_ROOT/provisioning"
+G_DS="$G_PROV/datasources"
+G_DASH="$G_ROOT/dashboards"
+G_DATA="$G_ROOT/data"
 
-# Datasource Google Cloud Monitoring dùng ADC (GCE default service account)
-cat >/opt/grafana/provisioning/datasources/stackdriver.yaml <<EOF
+mkdir -p "$G_DS" "$G_DASH" "$G_DATA"
+chown -R $UID:$GID "$G_ROOT" || true
+chmod -R 755 "$G_ROOT" || true
+
+# Datasource Stackdriver (Cloud Monitoring) dùng ADC (GCE)
+cat >"$G_DS/stackdriver.yaml" <<EOF
 apiVersion: 1
 datasources:
   - name: Google Cloud Monitoring
@@ -22,13 +54,14 @@ datasources:
       defaultProject: ${project_id}
 EOF
 
-# Chạy Grafana (KHÔNG mount SA JSON, KHÔNG set GOOGLE_APPLICATION_CREDENTIALS)
-docker rm -f grafana || true
+# ===== Run Grafana on external disk =====
+docker rm -f grafana >/dev/null 2>&1 || true
 docker run -d --name grafana --restart=always \
   -p 3000:3000 \
-  -e GF_SECURITY_ADMIN_USER='${grafana_admin_user}' \
-  -e GF_SECURITY_ADMIN_PASSWORD='${grafana_admin_pass}' \
+  -e GF_SECURITY_ADMIN_USER="${grafana_admin_user}" \
+  -e GF_SECURITY_ADMIN_PASSWORD="${grafana_admin_pass}" \
   -e GF_AUTH_ANONYMOUS_ENABLED=false \
-  -v /opt/grafana/provisioning:/etc/grafana/provisioning \
-  -v /opt/grafana/dashboards:/var/lib/grafana/dashboards \
+  -v "$G_PROV:/etc/grafana/provisioning" \
+  -v "$G_DASH:/var/lib/grafana/dashboards" \
+  -v "$G_DATA:/var/lib/grafana" \
   grafana/grafana:latest
