@@ -9,8 +9,8 @@ GRAFANA_ADMIN_PASS="${grafana_admin_pass}"
 
 # (Tùy chọn) đọc thêm metadata cho workspace Terraform in-house
 META="http://169.254.169.254/computeMetadata/v1/instance/attributes"
-INFRA_GIT_URL="$(curl -fsS -H 'Metadata-Flavor: Google' ${META}/INFRA_GIT_URL || true)"     # vd: https://github.com/you/infra.git
-INFRA_GCS_ZIP="$(curl -fsS -H 'Metadata-Flavor: Google' ${META}/INFRA_GCS_ZIP || true)"     # vd: gs://your-bucket/infra.zip
+INFRA_GIT_URL="$(curl -fsS -H 'Metadata-Flavor: Google' $META/INFRA_GIT_URL || true)"     # vd: https://github.com/you/infra.git
+INFRA_GCS_ZIP="$(curl -fsS -H 'Metadata-Flavor: Google' $META/INFRA_GCS_ZIP || true)"     # vd: gs://your-bucket/infra.zip
 
 # ===== 1) Cài base packages =====
 apt-get update -y
