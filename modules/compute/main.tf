@@ -107,6 +107,7 @@ resource "google_compute_instance" "bastion" {
   name         = "bastion"
   machine_type = "e2-medium"
   zone         = var.zone
+  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params { image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts" }
