@@ -105,7 +105,7 @@ resource "google_compute_instance_group_manager" "mig" {
 # Bastion có IP PUBLIC và tag "allow-ssh1"
 resource "google_compute_instance" "bastion" {
   name         = "bastion"
-  machine_type = "e2-micro"
+  machine_type = "e2-medium"
   zone         = var.zone
 
   boot_disk {
