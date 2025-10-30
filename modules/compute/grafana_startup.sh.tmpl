@@ -105,7 +105,7 @@ datasources:
     isDefault: true
     jsonData:
       authenticationType: gce
-      defaultProject: ${PROJECT_ID}
+      defaultProject: ${project_id}
 EOF
 
 docker rm -f grafana >/dev/null 2>&1 || true
