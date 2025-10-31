@@ -83,6 +83,10 @@ resource "google_compute_instance_group_manager" "mig" {
   zone               = var.zone
   base_instance_name = "web"
   target_size        = var.size_min
+  named_port { 
+    name = "http"
+    port = 80 
+  }
 
   version { instance_template = google_compute_instance_template.tpl.id }
 

@@ -95,6 +95,7 @@ resource "google_compute_backend_service" "be" {
   name                  = "web-be"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   protocol              = "HTTP"
+  port_name = "http"
   health_checks         = [google_compute_health_check.hc.id]
   backend { group = var.mig_group }
   
