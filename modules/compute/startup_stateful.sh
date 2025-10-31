@@ -42,7 +42,7 @@ fi
 nginx -t && systemctl reload nginx || true
 
 # Quyền cho web
-chown -R www-data:www-data "$WWW"
+sudo chown -R www-data:www-data "$WWW"
 find "$WWW" -type d -exec chmod 755 {} \; || true
 find "$WWW" -type f -exec chmod 644 {} \; || true
 
