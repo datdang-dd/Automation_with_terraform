@@ -12,7 +12,7 @@ variable "target_tags"          { type = list(string) }
 variable "service_account"      { type = string }
 variable "size_min" { 
     type = number
-    default = 2
+    default = 0
   }
 variable "size_max"  { 
     type = number

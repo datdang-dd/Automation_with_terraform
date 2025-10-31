@@ -178,6 +178,6 @@ resource "google_compute_autoscaler" "as" {
     min_replicas = var.size_min
     max_replicas = var.size_max
     cooldown_period = 60
-    cpu_utilization { target = 0.6 }
+    cpu_utilization { target = 0.8 }
   }
 }
