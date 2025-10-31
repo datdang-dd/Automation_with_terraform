@@ -26,9 +26,9 @@ mount "$DEV" "$MNT" || true
 grep -q "$DEV" /etc/fstab || echo "$DEV $MNT ext4 defaults,nofail 0 2" >> /etc/fstab
 
 # ===== 2) Cài nginx + google-cloud-cli (để có gsutil) =====
-apt-get update -y
-apt-get install -y nginx google-cloud-cli
-systemctl enable --now nginx
+sudo apt-get update -y
+sudo apt-get install -y nginx google-cloud-cli
+sudo systemctl enable --now nginx
 
 # ===== 3) Cấu hình Nginx root = /mnt/data/www (không symlink) =====
 mkdir -p "$WWW"
@@ -62,7 +62,7 @@ gsutil -m rsync -r -d "${SITE_GCS_DIR}" "${WWW}" | tee "${TMP_LOG}" || true
 
 # Nếu có thay đổi, sửa quyền và reload nginx
 if [ -s "${TMP_LOG}" ]; then
-  chown -R www-data:www-data "${WWW}"
+  sudo chown -R www-data:www-data "${WWW}"
   find "${WWW}" -type d -exec chmod 755 {} \; || true
   find "${WWW}" -type f -exec chmod 644 {} \; || true
   systemctl reload nginx || true
@@ -99,8 +99,8 @@ Unit=site-sync.service
 WantedBy=timers.target
 TIMER
 
-systemctl daemon-reload
-systemctl enable --now site-sync.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now site-sync.timer
 
 # Lần đầu kéo site về ngay
-systemctl start site-sync.service || true
+sudo systemctl start site-sync.service || true
