@@ -15,7 +15,6 @@ resource "google_compute_instance_template" "tpl" {
     type         = "pd-balanced"
     disk_size_gb = 10
     source_image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
-    resource_policies = [google_compute_resource_policy.snapshot_policy.id]
   }
 
   # >>> Disk phụ stateful (device_name = "data")
@@ -24,6 +23,7 @@ resource "google_compute_instance_template" "tpl" {
     auto_delete = false
     boot        = false
     type         = "PERSISTENT"
+    //source_snapshot = data.google_compute_snapshot.latest_data.self_link
     disk_type = var.extra_disk_type
     disk_size_gb = var.extra_disk_size_gb
   }
@@ -44,39 +44,43 @@ resource "google_compute_instance_template" "tpl" {
   metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
 
-
+# data "google_compute_snapshot" "latest_data" {
+#   filter      = "name eq snap-shot-disk.*"  # hoặc prefix bạn đặt
+#   most_recent = true
+#   project     = var.project_id
+# }
 # Snapshot policy for MIG instances - creates snapshot after 7 days, deletes after another 7 days
 # This uses a weekly schedule that creates snapshots every 7 days and keeps them for 7 days
-resource "google_compute_resource_policy" "snapshot_policy" {
-  name   = "mig-snapshot-policy"
-  region = var.region
+# resource "google_compute_resource_policy" "snapshot_policy" {
+#   name   = "mig-snapshot-policy"
+#   region = var.region
 
-  snapshot_schedule_policy {
-    schedule {
-      weekly_schedule {
-        day_of_weeks {
-          day        = "TUESDAY"
-          start_time = "13:00"
-        }
-      }
-    }
+#   snapshot_schedule_policy {
+#     schedule {
+#       weekly_schedule {
+#         day_of_weeks {
+#           day        = "TUESDAY"
+#           start_time = "13:00"
+#         }
+#       }
+#     }
     
-    retention_policy {
-      max_retention_days    = 7
-      on_source_disk_delete = "KEEP_AUTO_SNAPSHOTS"
-    }
+#     retention_policy {
+#       max_retention_days    = 7
+#       on_source_disk_delete = "KEEP_AUTO_SNAPSHOTS"
+#     }
     
-    snapshot_properties {
-      labels = {
-        environment = "production"
-        managed_by  = "terraform"
-        mig_name    = "web-mig"
-        schedule_type = "weekly"
-      }
-      storage_locations = [var.region]
-    }
-  }
-}
+#     snapshot_properties {
+#       labels = {
+#         environment = "production"
+#         managed_by  = "terraform"
+#         mig_name    = "web-mig"
+#         schedule_type = "weekly"
+#       }
+#       storage_locations = [var.region]
+#     }
+#   }
+# }
 
 resource "google_compute_instance_group_manager" "mig" {
   name               = "web-mig-zonal"

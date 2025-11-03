@@ -15,11 +15,6 @@ output "bastion_ip" {
   value       = module.compute.bastion_ip
 }
 
-output "snapshot_policy_name" {
-  description = "Name of the snapshot policy for MIG instances"
-  value       = module.compute.snapshot_policy_name
-}
-
 output "admin_email" {
   description = "Admin email with snapshot access permissions"
   value       = module.security.admin_email
