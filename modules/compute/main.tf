@@ -40,7 +40,7 @@ resource "google_compute_instance_template" "tpl" {
     "ssh-keys" = var.ssh_public_key
   }
 
-  metadata_startup_script = file("${path.module}/startup_stateful.sh")
+  //metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
 
 data "google_compute_snapshot" "latest_data" {
