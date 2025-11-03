@@ -23,7 +23,7 @@ resource "google_compute_instance_template" "tpl" {
     auto_delete = false
     boot        = false
     type         = "PERSISTENT"
-    //source_snapshot = data.google_compute_snapshot.latest_data.self_link
+    source_snapshot = data.google_compute_snapshot.latest_data.self_link
     disk_type = var.extra_disk_type
     disk_size_gb = var.extra_disk_size_gb
   }
@@ -36,51 +36,18 @@ resource "google_compute_instance_template" "tpl" {
     create_before_destroy = true
   }
 
-  metadata = length(var.ssh_public_key) > 0 ? {
+  metadata = {
     "ssh-keys" = var.ssh_public_key
-    "APP_ARTIFACT" = "gs://${var.bucket_name}/site-v${var.app_version}.zip"
-  } : { "APP_ARTIFACT" = "gs://${var.bucket_name}/site-v${var.app_version}.zip" }
+  }
 
   metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
 
-# data "google_compute_snapshot" "latest_data" {
-#   filter      = "name eq snap-shot-disk.*"  # hoặc prefix bạn đặt
-#   most_recent = true
-#   project     = var.project_id
-# }
-# Snapshot policy for MIG instances - creates snapshot after 7 days, deletes after another 7 days
-# This uses a weekly schedule that creates snapshots every 7 days and keeps them for 7 days
-# resource "google_compute_resource_policy" "snapshot_policy" {
-#   name   = "mig-snapshot-policy"
-#   region = var.region
-
-#   snapshot_schedule_policy {
-#     schedule {
-#       weekly_schedule {
-#         day_of_weeks {
-#           day        = "TUESDAY"
-#           start_time = "13:00"
-#         }
-#       }
-#     }
-    
-#     retention_policy {
-#       max_retention_days    = 7
-#       on_source_disk_delete = "KEEP_AUTO_SNAPSHOTS"
-#     }
-    
-#     snapshot_properties {
-#       labels = {
-#         environment = "production"
-#         managed_by  = "terraform"
-#         mig_name    = "web-mig"
-#         schedule_type = "weekly"
-#       }
-#       storage_locations = [var.region]
-#     }
-#   }
-# }
+data "google_compute_snapshot" "latest_data" {
+  filter      = "name eq snap-shot-disk.*"  # hoặc prefix bạn đặt
+  most_recent = true
+  project     = var.project_id
+}
 
 resource "google_compute_instance_group_manager" "mig" {
   name               = "web-mig-zonal"
