@@ -15,7 +15,6 @@ resource "google_compute_instance_template" "tpl" {
     type         = "pd-balanced"
     disk_size_gb = 10
     source_image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
-    resource_policies = [google_compute_resource_policy.snapshot_policy.id]
   }
 
   # >>> Disk phụ stateful (device_name = "data")
