@@ -23,7 +23,7 @@ resource "google_compute_instance_template" "tpl" {
     auto_delete = false
     boot        = false
     type         = "PERSISTENT"
-    source_snapshot = var.data_disk_snapshot_name
+    source_snapshot = data.google_compute_snapshot.web_snapshot.self_link
     disk_type = var.extra_disk_type
     disk_size_gb = var.extra_disk_size_gb
   }
@@ -42,6 +42,9 @@ resource "google_compute_instance_template" "tpl" {
 
   metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
+ data "google_compute_snapshot" "web_snapshot" {
+   name = "snap-shot-disk"
+ }
 
 resource "google_compute_instance_group_manager" "mig" {
   name               = "web-mig-zonal"
