@@ -12,11 +12,11 @@ variable "target_tags"          { type = list(string) }
 variable "service_account"      { type = string }
 variable "size_min" { 
     type = number
-    default = 0
+    default = 2
   }
 variable "size_max"  { 
     type = number
-    default = 0
+    default = 3
 }
 
 variable "grafana_admin_user" {
@@ -66,7 +66,7 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "app_version" {
-  description = "Application artifact version string, e.g. 2025-10-28.2"
-  type        = string
+variable "data_disk_snapshot_name" {
+  type = string
+  default = "snap-shot-disk"
 }

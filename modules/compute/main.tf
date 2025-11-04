@@ -23,7 +23,7 @@ resource "google_compute_instance_template" "tpl" {
     auto_delete = false
     boot        = false
     type         = "PERSISTENT"
-    source_snapshot = data.google_compute_snapshot.latest_data.self_link
+    source_snapshot = var.data_disk_snapshot_name
     disk_type = var.extra_disk_type
     disk_size_gb = var.extra_disk_size_gb
   }
@@ -40,13 +40,7 @@ resource "google_compute_instance_template" "tpl" {
     "ssh-keys" = var.ssh_public_key
   }
 
-  //metadata_startup_script = file("${path.module}/startup_stateful.sh")
-}
-
-data "google_compute_snapshot" "latest_data" {
-  filter      = "name eq snap-shot-disk.*"  # hoặc prefix bạn đặt
-  most_recent = true
-  project     = var.project_id
+  metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
 
 resource "google_compute_instance_group_manager" "mig" {
@@ -152,7 +146,7 @@ resource "google_compute_autoscaler" "as" {
     mode = "ONLY_UP"
     min_replicas = var.size_min
     max_replicas = var.size_max
-    cooldown_period = 60
+    cooldown_period = 120
     cpu_utilization { target = 0.8 }
   }
 }
