@@ -32,25 +32,25 @@ resource "google_monitoring_notification_channel" "email" {
 ############################
 # Alert Policy – CPU High
 ############################
-resource "google_monitoring_alert_policy" "cpu_high" {
-  display_name = "High CPU Usage"
-  combiner     = "OR"
+# resource "google_monitoring_alert_policy" "cpu_high" {
+#   display_name = "High CPU Usage"
+#   combiner     = "OR"
 
-  conditions {
-    display_name = "CPU Utilization > 80%"
-    condition_threshold {
-      filter           = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\""
-      comparison       = "COMPARISON_GT"
-      threshold_value  = 0.8
-      duration         = "120s"
-      trigger { count  = 1 }
-    }
-  }
+#   conditions {
+#     display_name = "CPU Utilization > 80%"
+#     condition_threshold {
+#       filter           = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\""
+#       comparison       = "COMPARISON_GT"
+#       threshold_value  = 0.8
+#       duration         = "120s"
+#       trigger { count  = 1 }
+#     }
+#   }
 
-  notification_channels = [google_monitoring_notification_channel.email.id]
-  enabled               = true
-  # depends_on            = [google_project_service.enable_monitoring]
-}
+#   notification_channels = [google_monitoring_notification_channel.email.id]
+#   enabled               = true
+#   # depends_on            = [google_project_service.enable_monitoring]
+# }
 
 
 
