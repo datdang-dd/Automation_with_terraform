@@ -66,7 +66,6 @@ module "compute" {
   grafana_admin_user = "admin"
   grafana_admin_pass = var.grafana_admin_pass
   bucket_name       = var.bucket_name
-  app_version = var.app_version
 }
 
 # 4) Load Balancer (HTTP/HTTPS) with Simple Web Security
