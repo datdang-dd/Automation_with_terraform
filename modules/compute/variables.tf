@@ -65,8 +65,3 @@ variable "bucket_name" {
   description = "GCS bucket name which stores web artifact zip"
   type        = string
 }
-
-variable "data_disk_snapshot_name" {
-  type = string
-  default = "snap-shot-disk"
-}
