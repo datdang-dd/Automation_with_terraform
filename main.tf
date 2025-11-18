@@ -1,15 +1,14 @@
 terraform {
   required_version = ">= 1.6.0"
 
-  cloud {
-    organization = "test_terraform_spi"
-    workspaces { name = "test_workspace" }
-  }
-
-  # backend "gcs" {
-  #   bucket = "your-tfstate-bucket"
-  #   prefix = "env/prod"         # folder/object prefix trong bucket
+  # cloud {
+  #   organization = "test_terraform_spi"
+  #   workspaces { name = "test_workspace" }
   # }
+
+  backend "local" {
+    path = "terraform.tfstate"         # folder/object prefix trong bucket
+  }
 
   required_providers {
     google = { source = "hashicorp/google", version = "~> 5.40" }
@@ -20,6 +19,7 @@ provider "google" {
   project = var.project_id
   region  = var.region
   zone    = var.zone
+  credentials = file("/mnt/bastion-data/repos/infra/ardent-disk-474504-c0-6d324316d6fc.json")
 }
 
 # 1) Network (VPC/Subnet/Router-NAT/Firewall)
