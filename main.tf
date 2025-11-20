@@ -19,7 +19,7 @@ provider "google" {
   project = var.project_id
   region  = var.region
   zone    = var.zone
-  credentials = file("/mnt/bastion-data/repos/infra/ardent-disk-474504-c0-6d324316d6fc.json")
+  credentials = file("D:/terraform_repo/ardent-disk-474504-c0-6d324316d6fc.json")
 }
 
 # 1) Network (VPC/Subnet/Router-NAT/Firewall)
