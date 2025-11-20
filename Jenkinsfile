@@ -20,7 +20,7 @@ pipeline {
         // Đây là đường dẫn nơi bạn lưu file tfstate gốc trên máy tính
         // Ví dụ: D:\terraform_state_store\terraform.tfstate
         // Lưu ý: Dùng dấu gạch chéo / hoặc 2 dấu gạch ngược \\ để tránh lỗi
-        PATH_TO_LOCAL_STATE = 'D:\terraform.tfstate' 
+        PATH_TO_LOCAL_STATE = 'D:\\terraform.tfstate' 
     }
 
     stages {
