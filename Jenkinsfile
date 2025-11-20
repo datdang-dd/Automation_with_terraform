@@ -21,7 +21,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir("${TF_WORKDIR}") {
-                    sh '''
+                    bat '''
                       terraform init -input=false
                     '''
                 }
