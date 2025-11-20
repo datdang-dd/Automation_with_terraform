@@ -1,6 +1,4 @@
 pipeline {
-    // Jenkins đang chạy trên bastion luôn => dùng agent any là được
-    // Nếu sau này có nhiều node, bạn có thể gán label 'bastion' cho node này
     agent any
 
     options {

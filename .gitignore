@@ -31,3 +31,4 @@ account.json
 Thumbs.db
 .idea/
 .vscode/
+.gitignore
