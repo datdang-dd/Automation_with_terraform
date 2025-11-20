@@ -4,7 +4,7 @@ terraform {
   # cloud {
   #   organization = "test_terraform_spi"
   #   workspaces { name = "test_workspace" }
-  # }
+  # } for testing with terraform cloud
 
   backend "local" {
     path = "terraform.tfstate"         # folder/object prefix trong bucket
