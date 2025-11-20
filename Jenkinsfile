@@ -31,7 +31,7 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir("${TF_WORKDIR}") {
-                    sh '''
+                    bat '''
                       terraform plan -input=false -no-color -out=tf.plan
                     '''
                 }
