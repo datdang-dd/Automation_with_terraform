@@ -4,9 +4,6 @@ pipeline {
     options {
         timestamps()
     }
-    when {
-        branch 'test'
-    }
     environment {
         // Đường dẫn tuyệt đối tới file JSON service account trên bastion
         GOOGLE_APPLICATION_CREDENTIALS = 'D:/terraform_repo/ardent-disk-474504-c0-6d324316d6fc.json'
