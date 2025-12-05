@@ -12,11 +12,11 @@ variable "target_tags"          { type = list(string) }
 variable "service_account"      { type = string }
 variable "size_min" { 
     type = number
-    default = 0
+    default = 1
   }
 variable "size_max"  { 
     type = number
-    default = 0
+    default = 1
 }
 
 variable "grafana_admin_user" {

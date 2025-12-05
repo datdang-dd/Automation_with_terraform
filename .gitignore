@@ -1,0 +1,34 @@
+# --- Terraform State (QUAN TRỌNG NHẤT: Chứa mật khẩu/Key) ---
+*.tfstate
+*.tfstate.*
+
+# --- Terraform Variable (Chứa biến môi trường/Secret) ---
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# --- Terraform Directory (File tạm, plugin tải về) ---
+.terraform/
+.terraform.lock.hcl
+
+# --- File Crash Log ---
+crash.log
+crash.log.*
+
+# --- Các file Key/Certificate nhạy cảm khác ---
+*.pem
+*.key
+*.p12
+*.jks
+id_rsa
+id_rsa.pub
+credentials.json
+account.json
+
+# --- File hệ thống (Rác) ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.gitignore

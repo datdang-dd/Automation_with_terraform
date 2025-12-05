@@ -1,15 +1,14 @@
 terraform {
   required_version = ">= 1.6.0"
 
-  cloud {
-    organization = "test_terraform_spi"
-    workspaces { name = "test_workspace" }
-  }
+  # cloud {
+  #   organization = "test_terraform_spi"
+  #   workspaces { name = "test_workspace" }
+  # } for testing with terraform cloud
 
-  # backend "gcs" {
-  #   bucket = "your-tfstate-bucket"
-  #   prefix = "env/prod"         # folder/object prefix trong bucket
-  # }
+  backend "local" {
+    path = "terraform.tfstate"         # folder/object prefix trong bucket
+  }
 
   required_providers {
     google = { source = "hashicorp/google", version = "~> 5.40" }
@@ -20,6 +19,7 @@ provider "google" {
   project = var.project_id
   region  = var.region
   zone    = var.zone
+  credentials = file("D:/terraform_repo/ardent-disk-474504-c0-6d324316d6fc.json")
 }
 
 # 1) Network (VPC/Subnet/Router-NAT/Firewall)
