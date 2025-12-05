@@ -67,11 +67,7 @@ pipeline {
         // APPLY chỉ khi MERGE vào main
         stage('Apply (Merged into main)') {
             when {
-                allOf {
-                    branch 'main'
-                    // chỉ chạy nếu commit message có dạng "Merge pull request ..."
-                    changelog '.*Merge pull request.*'
-                }
+                expression { env.GIT_BRANCH == 'origin/main' }
             }
             steps {
                 dir("${TF_WORKDIR}") {
@@ -91,7 +87,7 @@ pipeline {
                 }
 
                 // Chỉ update state trên ổ D khi APPLY (tức là nhánh main và là merge PR)
-                if (env.BRANCH_NAME == 'main') {
+                if (env.GIT_BRANCH == 'origin/main') {
                     echo "Cap nhat file state moi ve ${env.PATH_TO_LOCAL_STATE}"
                     bat "copy /Y terraform.tfstate \"${env.PATH_TO_LOCAL_STATE}\""
                 }
