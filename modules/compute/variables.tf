@@ -16,7 +16,7 @@ variable "size_min" {
   }
 variable "size_max"  { 
     type = number
-    default = 0
+    default = 1
 }
 
 variable "grafana_admin_user" {
