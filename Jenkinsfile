@@ -54,7 +54,7 @@ pipeline {
         // PLAN cho nhánh test (không apply)
         stage('Plan (Branch test)') {
             when {
-                branch 'test'
+                expression { env.GIT_BRANCH == 'origin/test' }
             }
             steps {
                 dir("${TF_WORKDIR}") {
