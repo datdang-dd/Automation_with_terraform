@@ -18,8 +18,8 @@ resource "google_storage_bucket" "bucket" {
   labels = { purpose = "practice", managed = "terraform" }
 
   lifecycle {
-    prevent_destroy = false          # KHÔNG cho phép xóa
-    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    prevent_destroy = true          # Khong Cho phép xóa bucket khi destroy
+    ignore_changes  = all           # Bỏ qua thay đổi từ bên ngoài (manual changes)
   }
 
 }
@@ -29,4 +29,12 @@ resource "google_storage_bucket_iam_binding" "bucket_access" {
   bucket  = google_storage_bucket.bucket.name
   role    = "roles/storage.objectAdmin"
   members = [for email in var.downloader_emails : "user:${email}"]
+}
+
+# Grant write access to CI service account if provided
+resource "google_storage_bucket_iam_member" "ci_uploader" {
+  count  = var.uploader_service_account != "" ? 1 : 0
+  bucket = google_storage_bucket.bucket.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${var.uploader_service_account}"
 }

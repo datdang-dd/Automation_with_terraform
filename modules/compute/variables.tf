@@ -11,12 +11,14 @@ variable "subnetwork_self_link" { type = string }
 variable "target_tags"          { type = list(string) }
 variable "service_account"      { type = string }
 variable "size_min" { 
-    type = number
-    default = 1
-  }
-variable "size_max"  { 
-    type = number
-    default = 1
+  description = "Minimum number of instances in the Managed Instance Group"
+  type        = number
+  default     = 1
+}
+variable "size_max" { 
+  description = "Maximum number of instances in the Managed Instance Group"
+  type        = number
+  default     = 1
 }
 
 variable "grafana_admin_user" {
@@ -64,4 +66,10 @@ variable "extra_disk_auto_delete" {
 variable "bucket_name" {
   description = "GCS bucket name which stores web artifact zip"
   type        = string
+}
+
+variable "snapshot_name" {
+  description = "Name of the snapshot to use for stateful disk. Leave empty to create new disk."
+  type        = string
+  default     = "snap-shot-disk"
 }

@@ -20,8 +20,14 @@ output "admin_email" {
   value       = module.security.admin_email
 }
 
-# Simple Web Security Output
-output "web_security_policy" {
-  description = "Cloud Armor security policy name for web protection"
-  value       = module.lb.security_policy_name
+# Grafana Access
+output "grafana_url" {
+  description = "Grafana access URL"
+  value       = "http://${module.compute.bastion_ip}:3000"
+}
+
+# Storage Outputs
+output "bucket_url" {
+  description = "GCS bucket URL"
+  value       = "gs://${module.storage.bucket_name}"
 }

@@ -18,14 +18,32 @@ resource "google_compute_instance_template" "tpl" {
   }
 
   # >>> Disk phụ stateful (device_name = "data")
-  disk {
-    device_name = "data"
-    auto_delete = false
-    boot        = false
-    type         = "PERSISTENT"
-    source_snapshot = data.google_compute_snapshot.web_snapshot.self_link
-    disk_type = var.extra_disk_type
-    disk_size_gb = var.extra_disk_size_gb
+  # Use snapshot if provided, otherwise create new disk
+  dynamic "disk" {
+    for_each = var.snapshot_name != "" ? [1] : []
+    content {
+      device_name     = "data"
+      auto_delete    = false
+      boot           = false
+      type           = "PERSISTENT"
+      source_snapshot = data.google_compute_snapshot.web_snapshot[0].self_link
+      disk_type      = var.extra_disk_type
+      disk_size_gb   = var.extra_disk_size_gb
+    }
+  }
+  # Khi snapshot không tồn tại, tạo disk mới
+  # If no snapshot, create new empty disk
+  dynamic "disk" {
+    for_each = var.snapshot_name == "" ? [1] : []
+    content {
+      device_name = "data"
+      auto_delete = false
+      boot        = false
+      type        = "PERSISTENT"
+      disk_type   = var.extra_disk_type
+      disk_size_gb = var.extra_disk_size_gb
+      # Empty disk will be formatted by startup script
+    }
   }
 
   network_interface {
@@ -42,9 +60,11 @@ resource "google_compute_instance_template" "tpl" {
 
   metadata_startup_script = file("${path.module}/startup_stateful.sh")
 }
- data "google_compute_snapshot" "web_snapshot" {
-   name = "snap-shot-disk"
- }
+# Only fetch snapshot if snapshot_name is provided
+data "google_compute_snapshot" "web_snapshot" {
+  count = var.snapshot_name != "" ? 1 : 0
+  name  = var.snapshot_name
+}
 
 resource "google_compute_instance_group_manager" "mig" {
   name               = "web-mig-zonal"
@@ -150,6 +170,6 @@ resource "google_compute_autoscaler" "as" {
     min_replicas = var.size_min
     max_replicas = var.size_max
     cooldown_period = 120
-    cpu_utilization { target = 0.8 }
+    cpu_utilization { target = 0.9 }
   }
 }
