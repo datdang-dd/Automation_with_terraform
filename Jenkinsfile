@@ -47,8 +47,8 @@ pipeline {
             steps {
                 dir("${TF_WORKDIR}") {
                     echo "Dang khoi tao Terraform..."
-                    bat 'terraform state rm module.security.google_project_service.enable_logging[0]'
-                    bat 'terraform state rm module.security.google_project_service.enable_monitoring[0]'
+                    // bat 'terraform state rm module.security.google_project_service.enable_logging[0]'
+                    // bat 'terraform state rm module.security.google_project_service.enable_monitoring[0]'
                     bat 'terraform init -input=false'
                 }
             }
