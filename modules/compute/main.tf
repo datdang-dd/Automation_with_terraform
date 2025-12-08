@@ -31,7 +31,7 @@ resource "google_compute_instance_template" "tpl" {
       disk_size_gb   = var.extra_disk_size_gb
     }
   }
-  
+  # Khi snapshot không tồn tại, tạo disk mới
   # If no snapshot, create new empty disk
   dynamic "disk" {
     for_each = var.snapshot_name == "" ? [1] : []
