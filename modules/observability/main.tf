@@ -41,7 +41,7 @@ resource "google_monitoring_alert_policy" "cpu_high" {
   conditions {
     display_name = "CPU Utilization > 90%"
     condition_threshold {
-      filter          = "resource.type=\"gce_instance\" AND resource.labels.instance_name=starts_with(\"${var.mig_name}\") AND metric.type=\"compute.googleapis.com/instance/cpu/utilization\""
+      filter          = "resource.type=\"gce_instance\" AND metric.type=\"compute.googleapis.com/instance/cpu/utilization\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 0.9
@@ -63,9 +63,9 @@ resource "google_monitoring_alert_policy" "memory_high" {
   conditions {
     display_name = "Memory Utilization > 90%"
     condition_threshold {
-      filter          = "resource.type=\"gce_instance\" AND resource.labels.instance_name=starts_with(\"${var.mig_name}\") AND metric.type=\"agent.googleapis.com/memory/percent_used\""
+      filter          = "resource.type=\"gce_instance\" AND metric.type=\"agent.googleapis.com/memory/percent_used\""
       duration        = "300s"
-      comparison      = "COMPARISON_GT"
+      comparison      = "COMPARISON_LT"
       threshold_value = 0.90
       trigger {
         count = 1
@@ -85,7 +85,7 @@ resource "google_monitoring_alert_policy" "disk_high" {
   conditions {
     display_name = "Disk Usage > 90%"
     condition_threshold {
-      filter          = "resource.type=\"gce_instance\" AND resource.labels.instance_name=starts_with(\"${var.mig_name}\") AND metric.type=\"agent.googleapis.com/disk/percent_used\" AND metric.labels.device_name=\"sda\""
+      filter          = "resource.type=\"gce_instance\" AND metric.type=\"agent.googleapis.com/disk/percent_used\" AND metric.labels.device_name=\"sda\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 0.90
