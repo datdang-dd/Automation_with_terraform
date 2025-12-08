@@ -9,7 +9,7 @@ pipeline {
     environment {
         GOOGLE_APPLICATION_CREDENTIALS = 'D:/terraform_repo/ardent-disk-474504-c0-6d324316d6fc.json'
         TF_WORKDIR          = '.'
-        PATH_TO_LOCAL_STATE = 'D:\\terraform.tfstate'
+        PATH_TO_LOCAL_STATE = 'D:\\terraform_repo\\Automation_with_terraform\\terraform.tfstate'
         GCS_BUCKET_NAME     = 'my-static-web-bucket'
     }
 
@@ -105,7 +105,8 @@ pipeline {
                 dir("${TF_WORKDIR}") {
                     if (fileExists('terraform.tfstate')) {
                         // Upload state file to GCS bucket khi thanh cong
-                        echo "Upload terraform.tfstate len GCS bucket: ${env.GCS_BUCKET_NAME}"
+                        echo "Auth service account va upload terraform.tfstate len GCS bucket: ${env.GCS_BUCKET_NAME}"
+                        bat "gcloud auth activate-service-account --key-file=\"%GOOGLE_APPLICATION_CREDENTIALS%\""
                         bat "gsutil cp terraform.tfstate gs://${env.GCS_BUCKET_NAME}/terraform.tfstate"
                         echo "Da upload state file len GCS thanh cong!"
                     } else {

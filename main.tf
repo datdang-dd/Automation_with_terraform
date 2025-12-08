@@ -85,6 +85,7 @@ module "storage" {
   project_id        = var.project_id
   bucket_name       = var.bucket_name
   downloader_emails = var.downloader_emails
+  uploader_service_account = module.security.sa_email
 }
 
 # 6) Observability (Uptime + Alerts)

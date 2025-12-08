@@ -102,3 +102,9 @@ variable "snapshot_name" {
   type        = string
   default     = "snap-shot-disk"
 }
+
+variable "uploader_service_account"{
+  description = "Service account email that can write the bucket"
+  type        = string
+  default     = ""
+}
