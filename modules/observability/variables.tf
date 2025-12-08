@@ -10,3 +10,9 @@ variable "enable_uptime" {
 
 }    # LB IP hoặc domain
 variable "mig_name"     { type = string }        # ví dụ "web-mig"
+
+# Optional: enable disk usage alert (requires Ops Agent metrics present)
+variable "enable_disk_alert" {
+  type    = bool
+  default = false
+}
