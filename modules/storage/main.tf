@@ -18,8 +18,8 @@ resource "google_storage_bucket" "bucket" {
   labels = { purpose = "practice", managed = "terraform" }
 
   lifecycle {
-    prevent_destroy = false          # KHÔNG cho phép xóa
-    ignore_changes  = all           # KHÔNG cập nhật hay ghi đè nếu có thay đổi
+    prevent_destroy = true          # Khong Cho phép xóa bucket khi destroy
+    ignore_changes  = all           # Bỏ qua thay đổi từ bên ngoài (manual changes)
   }
 
 }

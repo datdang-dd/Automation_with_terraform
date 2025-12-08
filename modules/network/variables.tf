@@ -4,7 +4,6 @@ variable "vpc_name"    { type = string }
 variable "subnet_name" { type = string }
 variable "subnet_cidr" { type = string }
 variable "ssh_cidr"    { type = list(string) }
-variable "subnetwork_self_link" { type = string }
 variable "grafana_allowed_cidr" {
-    type = string
+  type = string
 }

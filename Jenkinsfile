@@ -10,6 +10,7 @@ pipeline {
         GOOGLE_APPLICATION_CREDENTIALS = 'D:/terraform_repo/ardent-disk-474504-c0-6d324316d6fc.json'
         TF_WORKDIR          = '.'
         PATH_TO_LOCAL_STATE = 'D:\\terraform.tfstate'
+        GCS_BUCKET_NAME     = 'my-static-web-bucket'
     }
 
     stages {
@@ -46,6 +47,8 @@ pipeline {
             steps {
                 dir("${TF_WORKDIR}") {
                     echo "Dang khoi tao Terraform..."
+                    bat 'terraform state rm module.security.google_project_service.enable_logging[0]'
+                    bat 'terraform state rm module.security.google_project_service.enable_monitoring[0]'
                     bat 'terraform init -input=false'
                 }
             }
@@ -79,6 +82,19 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+                dir("${TF_WORKDIR}") {
+                    // Luon copy state ra D:\ du co loi hay khong (neu ton tai file)
+                    if (fileExists('terraform.tfstate')) {
+                        echo "Sao chep terraform.tfstate ve ${env.PATH_TO_LOCAL_STATE} (luon thuc hien)"
+                        bat "copy /Y terraform.tfstate \"${env.PATH_TO_LOCAL_STATE}\""
+                    } else {
+                        echo "Khong tim thay terraform.tfstate de sao chep"
+                    }
+                }
+            }
+        }
         success {
             script {
                 // Lưu tf.plan khi build thành công (nếu có)
@@ -86,12 +102,18 @@ pipeline {
                     archiveArtifacts artifacts: 'tf.plan', onlyIfSuccessful: true
                 }
 
-                // Chỉ update state trên ổ D khi APPLY (tức là nhánh main và là merge PR)
-                if (env.GIT_BRANCH == 'origin/main') {
-                    echo "Cap nhat file state moi ve ${env.PATH_TO_LOCAL_STATE}"
-                    bat "copy /Y terraform.tfstate \"${env.PATH_TO_LOCAL_STATE}\""
+                dir("${TF_WORKDIR}") {
+                    if (fileExists('terraform.tfstate')) {
+                        // Upload state file to GCS bucket khi thanh cong
+                        echo "Upload terraform.tfstate len GCS bucket: ${env.GCS_BUCKET_NAME}"
+                        bat "gsutil cp terraform.tfstate gs://${env.GCS_BUCKET_NAME}/terraform.tfstate"
+                        echo "Da upload state file len GCS thanh cong!"
+                    } else {
+                        echo "Khong tim thay terraform.tfstate de upload len GCS"
+                    }
                 }
             }
         }
     }
 }
+

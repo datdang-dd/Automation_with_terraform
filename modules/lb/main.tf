@@ -1,89 +1,3 @@
-# Cloud Armor Security Policy - Optimized for High Traffic
-resource "google_compute_security_policy" "web_security_policy" {
-  name = "web-security-policy"
-  
-  # Default rule - allow all traffic
-  rule {
-    action   = "allow"
-    priority = "2147483647"
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
-    }
-    description = "default allow rule"
-  }
-  
-  # High traffic rate limiting - 10,000 requests per minute per IP
-  rule {
-    action   = "throttle"
-    priority = "100"
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
-    }
-    rate_limit_options {
-      conform_action = "allow"
-      exceed_action = "deny(429)"
-      enforce_on_key = "IP"
-      rate_limit_threshold {
-        count = 10000
-        interval_sec = 60
-      }
-    }
-    description = "High traffic rate limiting - 10,000 req/min per IP"
-  }
-  
-  # Aggressive DDoS protection - 1000 requests per 10 seconds per IP
-  rule {
-    action   = "throttle"
-    priority = "50"
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
-    }
-    rate_limit_options {
-      conform_action = "allow"
-      exceed_action = "deny(429)"
-      enforce_on_key = "IP"
-      rate_limit_threshold {
-        count = 1000
-        interval_sec = 10
-      }
-    }
-    description = "DDoS protection - 1000 req/10sec per IP"
-  }
-  
-  # Burst protection - 100 requests per second per IP
-  rule {
-    action   = "throttle"
-    priority = "25"
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
-    }
-    rate_limit_options {
-      conform_action = "allow"
-      exceed_action = "deny(429)"
-      enforce_on_key = "IP"
-      rate_limit_threshold {
-        # interval_sec must be one of the allowed values (10,30,60,...).
-        # To preserve ~100 requests/second, use 1000 requests per 10 seconds.
-        count = 1000
-        interval_sec = 10
-      }
-    }
-    description = "Burst protection - 100 req/sec per IP"
-  }
-}
-
 resource "google_compute_health_check" "hc" {
   name               = "web-hc"
   check_interval_sec = 10
@@ -95,20 +9,17 @@ resource "google_compute_backend_service" "be" {
   name                  = "web-be"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   protocol              = "HTTP"
-  port_name = "http"
+  port_name             = "http"
   health_checks         = [google_compute_health_check.hc.id]
   backend { group = var.mig_group }
   
-  # Security: Apply Cloud Armor policy
-  security_policy = google_compute_security_policy.web_security_policy.id
-  
-  # DDoS Protection: Enable connection draining
+  # Enable connection draining
   connection_draining_timeout_sec = 30
   
-  # DDoS Protection: Enable session affinity
+  # Enable session affinity
   session_affinity = "CLIENT_IP"
   
-  # DDoS Protection: Enable CDN for better performance
+  # Enable CDN for better performance
   enable_cdn = true
   cdn_policy {
     cache_mode = "CACHE_ALL_STATIC"

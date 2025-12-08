@@ -31,7 +31,7 @@ resource "google_compute_firewall" "allow_ssh_internal" {
   direction    = "INGRESS"
   target_tags  = ["web"]                  # 👈 áp lên VM trong MIG
   source_ranges = [var.subnet_cidr]       # 👈 cho phép mọi IP trong subnet (bastion nằm trong đây)
-
+  
   allow {
     protocol = "tcp"
     ports    = ["22"]
@@ -78,14 +78,9 @@ resource "google_compute_router_nat" "nat" {
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
-# Get the network of the provided subnetwork
-data "google_compute_subnetwork" "bastion_subnet" {
-  self_link = var.subnetwork_self_link
-}
-
 resource "google_compute_firewall" "allow_grafana" {
   name    = "allow-grafana"
-  network = data.google_compute_subnetwork.bastion_subnet.network
+  network = google_compute_network.vpc.name
 
   allow {
     protocol = "tcp"

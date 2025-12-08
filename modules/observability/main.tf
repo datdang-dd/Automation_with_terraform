@@ -30,27 +30,101 @@ resource "google_monitoring_notification_channel" "email" {
 }
 
 ############################
-# Alert Policy – CPU High
+# Alert Policies
 ############################
-# resource "google_monitoring_alert_policy" "cpu_high" {
-#   display_name = "High CPU Usage"
-#   combiner     = "OR"
 
-#   conditions {
-#     display_name = "CPU Utilization > 80%"
-#     condition_threshold {
-#       filter           = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\""
-#       comparison       = "COMPARISON_GT"
-#       threshold_value  = 0.8
-#       duration         = "120s"
-#       trigger { count  = 1 }
-#     }
-#   }
+# CPU High Alert
+resource "google_monitoring_alert_policy" "cpu_high" {
+  display_name = "High CPU Usage - MIG Instances"
+  combiner     = "OR"
 
-#   notification_channels = [google_monitoring_notification_channel.email.id]
-#   enabled               = true
-#   # depends_on            = [google_project_service.enable_monitoring]
-# }
+  conditions {
+    display_name = "CPU Utilization > 90%"
+    condition_threshold {
+      filter          = "resource.type=\"gce_instance\" AND resource.labels.instance_name=~\"${var.mig_name}-.*\" AND metric.type=\"compute.googleapis.com/instance/cpu/utilization\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.9
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled               = true
+}
+
+# Memory High Alert
+resource "google_monitoring_alert_policy" "memory_high" {
+  display_name = "High Memory Usage - MIG Instances"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Memory Utilization > 90%"
+    condition_threshold {
+      filter          = "resource.type=\"gce_instance\" AND resource.labels.instance_name=~\"${var.mig_name}-.*\" AND metric.type=\"agent.googleapis.com/memory/percent_used\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.90
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled               = true
+}
+
+# Disk Usage Alert
+resource "google_monitoring_alert_policy" "disk_high" {
+  display_name = "High Disk Usage - MIG Instances"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Disk Usage > 90%"
+    condition_threshold {
+      filter          = "resource.type=\"gce_instance\" AND resource.labels.instance_name=~\"${var.mig_name}-.*\" AND metric.type=\"agent.googleapis.com/disk/percent_used\" AND metric.labels.device_name=\"sda\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.90
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled               = true
+}
+
+# Uptime Check Failure Alert
+resource "google_monitoring_alert_policy" "uptime_failure" {
+  count        = var.enable_uptime ? 1 : 0
+  display_name = "Uptime Check Failure"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Uptime check failed"
+    condition_threshold {
+      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\""
+      duration        = "60s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.5
+      trigger {
+        count = 1
+      }
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_FRACTION_TRUE"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  enabled               = true
+}
 
 
 
