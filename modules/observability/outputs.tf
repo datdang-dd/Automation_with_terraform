@@ -14,7 +14,7 @@ output "alert_policy_memory_name" {
 }
 
 output "alert_policy_disk_name" {
-  value       = google_monitoring_alert_policy.disk_high.name
+  value       = var.enable_disk_alert ? google_monitoring_alert_policy.disk_high[0].name : null
   description = "Alert policy name for high disk usage"
 }
 

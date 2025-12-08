@@ -77,15 +77,16 @@ resource "google_monitoring_alert_policy" "memory_high" {
   enabled               = true
 }
 
-# Disk Usage Alert
+# Disk Usage Alert (optional; requires Ops Agent disk metrics available)
 resource "google_monitoring_alert_policy" "disk_high" {
+  count       = var.enable_disk_alert ? 1 : 0
   display_name = "High Disk Usage - MIG Instances"
   combiner     = "OR"
 
   conditions {
     display_name = "Disk Usage > 90%"
     condition_threshold {
-      filter          = "resource.type=\"gce_instance\" AND metric.type=\"agent.googleapis.com/disk/percent_used\" AND metric.labels.device_name=\"sda\""
+      filter          = "resource.type=\"gce_instance\" AND metric.type=\"agent.googleapis.com/disk/percent_used\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 0.90
