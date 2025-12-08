@@ -25,7 +25,6 @@ id_rsa
 id_rsa.pub
 credentials.json
 account.json
-
 *.tfvars.example
 
 # --- File hệ thống (Rác) ---
@@ -33,5 +32,4 @@ account.json
 Thumbs.db
 .idea/
 .vscode/
-.gitignore
 *.md
