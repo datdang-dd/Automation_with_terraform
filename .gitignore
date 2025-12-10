@@ -26,6 +26,7 @@ id_rsa.pub
 credentials.json
 account.json
 *.tfvars.example
+*.tfvars
 
 # --- File hệ thống (Rác) ---
 .DS_Store
