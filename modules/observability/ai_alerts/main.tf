@@ -62,6 +62,14 @@ resource "google_pubsub_topic_iam_member" "logs_sink_publisher" {
   role    = "roles/pubsub.publisher"
   member  = google_logging_project_sink.logs_sink.writer_identity
 }
+# Enable Cloud Run Admin API for the project
+resource "google_project_service" "run_api" {
+  project = var.project_id
+  service = "run.googleapis.com"
+
+  # Thường để true để tf destroy không vô tình tắt API
+  disable_on_destroy = false
+}
 
 # ---------- Cloud Run service ----------
 resource "google_cloud_run_service" "ai_service" {
@@ -93,7 +101,7 @@ resource "google_cloud_run_service" "ai_service" {
 
         env {
           name  = "MODEL_NAME"
-          value = "gemini-1.5-pro"
+          value = "gemini-2.5-flash"
         }
       }
     }
