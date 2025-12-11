@@ -48,7 +48,7 @@ resource "google_monitoring_notification_channel" "chat" {
   }
 }
 
-resource "google_monitoring_alert_policy" "audit_events_to_chat" {
+resource "google_monitoring_alert_policy" "audit_computer_alerts" {
   project      = var.project_id
   display_name = "Audit: VM & Service changes → Google Chat"
   
@@ -122,6 +122,23 @@ conditions {
       trigger { count = 1 }
     }
   }
+  
+
+
+
+  notification_channels = [
+    google_monitoring_notification_channel.chat.id
+  ]
+  
+  enabled = true
+}
+
+resource "google_monitoring_alert_policy" "audit_compute1_alerts" {
+  project      = var.project_id
+  display_name = "Audit: VM & Service changes → Google Chat"
+  
+  # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
+  combiner     = "OR" 
   conditions {
     display_name = "gce_network"
     condition_threshold {
@@ -172,6 +189,19 @@ conditions {
     }
   }
 
+  notification_channels = [
+    google_monitoring_notification_channel.chat.id
+  ]
+}
+
+
+resource "google_monitoring_alert_policy" "audit_compute2_alerts" {
+  project      = var.project_id
+  display_name = "Audit: VM & Service changes → Google Chat"
+  
+  # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
+  combiner     = "OR" 
+
 conditions {
     display_name = "bigquery_resource"
     condition_threshold {
@@ -189,7 +219,18 @@ conditions {
       trigger { count = 1 }
     }
   }
+  notification_channels = [
+    google_monitoring_notification_channel.chat.id
+  ]
+}
 
+
+resource "google_monitoring_alert_policy" "audit_compute3_alerts" {
+  project      = var.project_id
+  display_name = "Audit: VM & Service changes → Google Chat"
+  
+  # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
+  combiner     = "OR" 
 conditions {
     display_name = "gcs_bucket"
     condition_threshold {
@@ -259,12 +300,7 @@ conditions {
       trigger { count = 1 }
     }
   }
-
   notification_channels = [
     google_monitoring_notification_channel.chat.id
   ]
-  
-  enabled = true
 }
-
-
