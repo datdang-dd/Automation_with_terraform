@@ -26,7 +26,8 @@ resource "google_logging_metric" "audit_events_metric" {
       protoPayload.methodName = "google.cloud.aiplatform.v1.ModelService.UploadModel" OR
       protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
       protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService" OR
-      protoPayload.methodName = "v1.compute.networks.insert" 
+      protoPayload.methodName = "v1.compute.networks.insert" OR
+      protoPayload.methodName = "beta.compute.networks.insert"
     )
   EOT
 
