@@ -48,11 +48,20 @@ resource "google_pubsub_topic" "logs_topic" {
 
 # ---------- Logging sink -> Pub/Sub ----------
 resource "google_logging_project_sink" "logs_sink" {
-  project                 = var.project_id
-  name                    = "ai-log-errors-sink"
-  destination             = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
-  filter                  = var.log_filter
-  unique_writer_identity  = true
+  project                = var.project_id
+  name                   = "ai-log-audit-sink"
+  destination            = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
+  filter                 = <<EOT
+  logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
+  AND (
+    protoPayload.methodName = "v1.compute.instances.insert" OR
+    protoPayload.methodName = "beta.compute.instances.insert" OR
+    protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
+    protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService"
+  )
+  AND operation.last = true
+  EOT
+  unique_writer_identity = true
 }
 
 # Grant sink writer SA permission to publish to topic
@@ -68,7 +77,7 @@ resource "google_project_service" "run_api" {
   service = "run.googleapis.com"
 
   # Thường để true để tf destroy không vô tình tắt API
-  disable_on_destroy = false
+  disable_on_destroy = true
 }
 
 # ---------- Cloud Run service ----------

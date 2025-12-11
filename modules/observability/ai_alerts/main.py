@@ -2,166 +2,239 @@ import base64
 import json
 import os
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Flask, request, jsonify
 import requests
 
-# ✅ SDK mới dành cho Gemini 2.5
-from google import genai
-from google.genai import types
+app = Flask(__name__)
 
-# --- CẤU HÌNH ---
+# --- CONFIG ---
+
 PROJECT_ID = os.environ.get("PROJECT_ID", "ardent-disk-474504-c0")
-LOCATION = os.environ.get("LOCATION", "us-central1")
 
-# ⚠️ Điền webhook URL bằng secret / env in production
+# Webhook Google Chat – NÊN set qua env/secret trên Cloud Run
 CHAT_WEBHOOK_URL = os.environ.get(
     "CHAT_WEBHOOK_URL",
     "https://chat.googleapis.com/v1/spaces/AAQAGKxqmro/messages?key=YOUR_KEY&token=YOUR_TOKEN",
 )
 
-# ✅ Sử dụng model Gemini 2.5 Flash
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 
-app = Flask(__name__)
+# --- HELPER PARSE FUNCTIONS ---
 
 
-def get_genai_client() -> genai.Client:
-    """Khởi tạo Client Vertex AI với SDK google-genai mới."""
-    return genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
-
-
-def clean_json_response(text: str) -> str:
-    """Strip common markdown fences so json.loads doesn't fail.
-
-    Gemini models sometimes wrap JSON in ```json ... ``` blocks.
+def parse_vm_creation(log_entry: Dict[str, Any]) -> Dict[str, Optional[str]]:
     """
-    cleaned = re.sub(r"^```json\s*", "", text.strip(), flags=re.IGNORECASE | re.MULTILINE)
-    cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.MULTILINE)
-    cleaned = re.sub(r"\s*```$", "", cleaned)
-    return cleaned.strip()
+    Parse info when a new Compute Engine VM is created.
 
-
-def analyze_log(log_entry: Dict[str, Any]) -> Dict[str, Any]:
-    """Send the log entry to Gemini and parse the returned JSON analysis.
-
-    Returns a dict with keys: title, summary, root_cause (list), actions (list).
+    Log pattern:
+      protoPayload.methodName = "v1.compute.instances.insert"
+      protoPayload.resourceName = "projects/PROJECT/zones/ZONE/instances/INSTANCE_NAME"
     """
-    client = get_genai_client()
-    log_str = json.dumps(log_entry, indent=2)
+    proto = log_entry.get("protoPayload", {})
+    resource_name = proto.get("resourceName", "")  # full resource path
 
-    prompt = (
-        "You are a senior SRE / System Admin.\n"
-        "Analyze this GCP log entry:\n\n"
-        f"{log_str}\n\n"
-        "Output ONLY a raw JSON object (no markdown formatting) with these fields:\n"
-        "- title: Short title (max 80 chars).\n"
-        "- summary: 1-2 sentences explaining what happened.\n"
-        "- root_cause: List of probable causes (strings).\n"
-        "- actions: List of recommended fix commands or actions (strings).\n"
+    project = None
+    zone = None
+    instance = None
+
+    # Try parse from resourceName
+    # Example: projects/ardent-disk-474504-c0/zones/us-central1-b/instances/test-vm
+    m = re.match(
+        r"projects/(?P<project>[^/]+)/zones/(?P<zone>[^/]+)/instances/(?P<instance>[^/]+)",
+        resource_name,
     )
+    if m:
+        project = m.group("project")
+        zone = m.group("zone")
+        instance = m.group("instance")
 
-    try:
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json"),
+    # Fallback project from log resource
+    if not project:
+        project = (
+            log_entry.get("resource", {})
+            .get("labels", {})
+            .get("project_id", PROJECT_ID)
         )
 
-        # response may expose text or content; try to be flexible
-        text = getattr(response, "text", None)
-        if text is None:
-            # fallback: try str(response) or content
-            text = getattr(response, "content", None) or str(response)
+    # Fallback zone from log resource
+    if not zone:
+        zone = log_entry.get("resource", {}).get("labels", {}).get("zone")
 
-        data = json.loads(clean_json_response(str(text)))
-
-    except Exception as e:  # pylint: disable=broad-except
-        print(f"Gemini Analysis Error: {e}")
-        data = {
-            "title": "AI Analysis Failed",
-            "summary": f"Error calling Gemini: {str(e)}",
-            "root_cause": ["Check Cloud Run logs for details"],
-            "actions": ["Manual investigation required"],
-        }
-
-    return data
+    return {
+        "project": project,
+        "zone": zone,
+        "instance": instance,
+        "resource_name": resource_name or None,
+    }
 
 
-def send_to_chat(ai_result: Dict[str, Any], raw_log: Dict[str, Any]) -> None:
-    """Send the AI analysis to Google Chat via webhook.
-
-    The message is a simple plain-text payload. In production, consider using
-    a secret manager to store the webhook URL and signing/verifying messages.
+def parse_service_enable(log_entry: Dict[str, Any]) -> Dict[str, Optional[str]]:
     """
-    title = ai_result.get("title", "GCP Log Alert")
-    summary = ai_result.get("summary", "No summary provided.")
+    Parse info when an API/service is enabled.
 
-    rc_list = ai_result.get("root_cause") or []
-    act_list = ai_result.get("actions") or []
+    Common fields:
+      protoPayload.methodName:
+        - "google.api.servicemanagement.v1.ServiceManager.EnableService"
+        - "google.api.serviceusage.v1.ServiceUsage.EnableService"
 
-    rc_text = "\n".join(f"• {r}" for r in rc_list) if rc_list else "_Analyzing..._"
-    act_text = "\n".join(f"• {a}" for a in act_list) if act_list else "_No specific action._"
+      protoPayload.request.serviceName: "compute.googleapis.com"
+      protoPayload.resourceName: "projects/123456/services/compute.googleapis.com"
+    """
+    proto = log_entry.get("protoPayload", {})
+    request_obj = proto.get("request", {}) or {}
 
-    log_snippet = json.dumps(raw_log, indent=2)
-    if len(log_snippet) > 1000:
-        log_snippet = log_snippet[:1000] + "\n... (truncated)"
+    service_name = request_obj.get("serviceName")  # full service name
+    resource_name = proto.get("resourceName", "")
 
-    msg_text = (
-        f"🔥 {title}\n\n"
-        f"Summary:\n{summary}\n\n"
-        f"Probable Root Cause:\n{rc_text}\n\n"
-        f"Recommended Actions:\n{act_text}\n\n"
-        f"Raw Log Snippet:\n{log_snippet}"
-    )
+    # Try to extract project from resourceName: projects/123456/services/xxx
+    project = None
+    m = re.match(r"projects/(?P<project>[^/]+)/services/(?P<service>[^/]+)", resource_name)
+    if m:
+        project = m.group("project")
+        if not service_name:
+            service_name = m.group("service")
+
+    if not project:
+        project = (
+            log_entry.get("resource", {})
+            .get("labels", {})
+            .get("project_id", PROJECT_ID)
+        )
+
+    return {
+        "project": project,
+        "service_name": service_name,
+        "resource_name": resource_name or None,
+    }
+
+
+def send_to_chat(text: str) -> None:
+    """Send plain-text message to Google Chat via incoming webhook."""
+    if not CHAT_WEBHOOK_URL:
+        print("CHAT_WEBHOOK_URL is not set, skip sending message.")
+        return
 
     try:
-        r = requests.post(CHAT_WEBHOOK_URL, json={"text": msg_text})
-        print(f"Chat Webhook Status: {r.status_code}")
-        if r.status_code >= 400:
-            print(f"Chat Webhook Response: {r.text}")
-    except Exception as e:  # pylint: disable=broad-except
+        resp = requests.post(CHAT_WEBHOOK_URL, json={"text": text})
+        print(f"Chat Webhook Status: {resp.status_code}")
+        if resp.status_code >= 400:
+            print(f"Chat Webhook Response: {resp.text}")
+    except Exception as e:  # noqa: BLE001
         print(f"Failed to send chat message: {e}")
+
+
+# --- MAIN HANDLER ---
 
 
 @app.route("/", methods=["POST"])
 def handle_pubsub() -> Any:
-    """Main entrypoint to receive Pub/Sub push (via Eventarc or direct push).
+    """
+    Main entrypoint for Pub/Sub push (via Logging sink → Pub/Sub → push).
 
-    Expects the Pub/Sub envelope format with a base64-encoded `message.data`.
+    Expected envelope:
+    {
+      "message": {
+        "data": "<base64-encoded-log-entry>",
+        ...
+      },
+      "subscription": "projects/.../subscriptions/..."
+    }
     """
     envelope = request.get_json()
     if not envelope:
-        return "Bad Request: No JSON", 400
+        return "Bad Request: No JSON body", 400
 
-    # Health check or direct test without `message` key
+    # Health check or direct ping
     if "message" not in envelope:
         return "OK", 200
 
     msg = envelope["message"]
     data = msg.get("data")
-
     if not data:
         return jsonify(status="no-data")
 
     try:
         payload = base64.b64decode(data).decode("utf-8")
         log_entry = json.loads(payload)
+    except Exception as e:  # noqa: BLE001
+        print(f"Failed to decode Pub/Sub message: {e}")
+        return "Invalid message", 400
 
-        print(f"Processing Log ID: {log_entry.get('insertId', 'unknown')}")
+    # --- COMMON FIELDS ---
+    proto = log_entry.get("protoPayload", {})
+    method = proto.get("methodName", "unknown_method")
+    principal = (
+        proto.get("authenticationInfo", {}).get("principalEmail", "unknown_principal")
+    )
+    timestamp = log_entry.get("timestamp", "unknown_time")
 
-        ai_result = analyze_log(log_entry)
-        send_to_chat(ai_result, log_entry)
+    # Default values
+    title = "GCP Audit Event"
+    details_lines = []
+    event_type = "generic"
 
-    except Exception as e:  # pylint: disable=broad-except
-        print(f"Processing Error: {e}")
-        return "Error processing message", 500
+    # --- DETECT TYPE: VM CREATED ---
+    if method == "v1.compute.instances.insert":
+        event_type = "vm_created"
+        vm_info = parse_vm_creation(log_entry)
+        title = "🚀 New VM Created"
+
+        details_lines.append(f"- Project: `{vm_info.get('project')}`")
+        details_lines.append(f"- Zone: `{vm_info.get('zone')}`")
+        details_lines.append(f"- VM Name: `{vm_info.get('instance')}`")
+
+        if vm_info.get("resource_name"):
+            details_lines.append(f"- Resource: `{vm_info['resource_name']}`")
+
+    # --- DETECT TYPE: SERVICE ENABLED ---
+    elif method in (
+        "google.api.servicemanagement.v1.ServiceManager.EnableService",
+        "google.api.serviceusage.v1.ServiceUsage.EnableService",
+    ):
+        event_type = "service_enabled"
+        svc_info = parse_service_enable(log_entry)
+        title = "🧩 New API / Service Enabled"
+
+        details_lines.append(f"- Project: `{svc_info.get('project')}`")
+        details_lines.append(f"- Service: `{svc_info.get('service_name')}`")
+
+        if svc_info.get("resource_name"):
+            details_lines.append(f"- Resource: `{svc_info['resource_name']}`")
+
+    # --- FALLBACK: OTHER EVENT ---
+    else:
+        title = "ℹ️ GCP Audit Log Event"
+        details_lines.append(f"- Method: `{method}`")
+
+    # --- BUILD MESSAGE TEXT ---
+    # Raw log snippet (truncated to avoid spam)
+    raw_snippet = json.dumps(log_entry, indent=2)
+    if len(raw_snippet) > 1500:
+        raw_snippet = raw_snippet[:1500] + "\n... (truncated)"
+
+    details_block = "\n".join(details_lines) if details_lines else "- (no extra details)"
+
+    text = (
+        f"{title}\n\n"
+        f"*Event Type*: `{event_type}`\n"
+        f"*Time*: `{timestamp}`\n"
+        f"*Actor*: `{principal}`\n\n"
+        f"*Details:*\n"
+        f"{details_block}\n\n"
+        f"*Raw Log:*\n"
+        f"```json\n"
+        f"{raw_snippet}\n"
+        f"```"
+    )
+
+    print("Sending alert to Chat...")
+    send_to_chat(text)
 
     return jsonify(status="ok")
 
 
 if __name__ == "__main__":
-    # Cloud Run injects PORT; default to 8080 for local runs
+    # Cloud Run injects PORT; default to 8080 for local testing
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
