@@ -68,7 +68,7 @@ resource "google_project_service" "run_api" {
   service = "run.googleapis.com"
 
   # Thường để true để tf destroy không vô tình tắt API
-  disable_on_destroy = false
+  disable_on_destroy = true
 }
 
 # ---------- Cloud Run service ----------
