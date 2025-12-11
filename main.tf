@@ -110,4 +110,13 @@ module "ai_log_alerts" {
 
 }
 
+module "audit_log_to_chat" {
+  source = "./modules/observability/log_to_chat"
+
+  project_id       = var.project_id
+  log_filter       = var.log_filter  # có thể reuse biến cũ
+  chat_webhook_url = var.chat_webhook_url
+}
+
+
 
