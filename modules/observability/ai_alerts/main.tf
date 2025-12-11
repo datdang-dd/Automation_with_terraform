@@ -51,7 +51,16 @@ resource "google_logging_project_sink" "logs_sink" {
   project                = var.project_id
   name                   = "ai-log-audit-sink"
   destination            = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
-  filter                 = var.log_filter
+  filter                 = <<EOT
+  logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
+  AND (
+    protoPayload.methodName = "v1.compute.instances.insert" OR
+    protoPayload.methodName = "beta.compute.instances.insert" OR
+    protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
+    protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService"
+  )
+  AND operation.last = true
+  EOT
   unique_writer_identity = true
 }
 

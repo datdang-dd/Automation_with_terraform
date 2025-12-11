@@ -19,17 +19,17 @@ variable "chat_webhook_url" {
   description = "Google Chat incoming webhook URL"
 }
 
-variable "log_filter" {
-  type = string
-  default = <<EOT
-  logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
-  AND (
-    protoPayload.methodName = "v1.compute.instances.insert" OR
-    protoPayload.methodName = "beta.compute.instances.insert" OR
-    protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
-    protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService"
-  )
-  AND operation.last = true
-  EOT
-  description = "Cloud Logging filter for logs sent to AI"
-}
+# variable "log_filter" {
+#   type = string
+#   default = <<EOT
+#   logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
+#   AND (
+#     protoPayload.methodName = "v1.compute.instances.insert" OR
+#     protoPayload.methodName = "beta.compute.instances.insert" OR
+#     protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
+#     protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService"
+#   )
+#   AND operation.last = true
+#   EOT
+#   description = "Cloud Logging filter for logs sent to AI"
+# }
