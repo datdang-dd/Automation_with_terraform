@@ -35,42 +35,49 @@ resource "google_monitoring_notification_channel" "chat" {
 resource "google_monitoring_alert_policy" "audit_events_to_chat" {
   project      = var.project_id
   display_name = "Audit: VM & Service changes → Google Chat"
-  combiner     = "OR"
+  
+  # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
+  combiner     = "OR" 
 
+  # ĐIỀU KIỆN 1: Dành cho VM (GCE Instance)
   conditions {
-    display_name = "Any VM or Service change (audit log)"
-
+    display_name = "VM Change Detected"
     condition_threshold {
-      # metric.type = logging.googleapis.com/user/<metric_name>
-      filter = <<EOT
-metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}"
-AND resource.type="global"
-EOT
-
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"gce_instance\""
+      
       aggregations {
         alignment_period   = "60s"
         per_series_aligner = "ALIGN_DELTA"
       }
-
       comparison      = "COMPARISON_GT"
       threshold_value = 0
       duration        = "0s"
+      trigger { count = 1 }
+    }
+  }
 
-      trigger {
-        count = 1
+  # ĐIỀU KIỆN 2: Dành cho Service/API (Audited Resource)
+  conditions {
+    display_name = "Service Change Detected"
+    condition_threshold {
+      # audited_resource là loại resource chung cho các hành động quản trị API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"audited_resource\""
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
       }
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      duration        = "0s"
+      trigger { count = 1 }
     }
   }
 
   notification_channels = [
     google_monitoring_notification_channel.chat.id
   ]
-
-  documentation {
-    content  = "Alert when a GCE instance is created or a GCP API/service is enabled (based on Cloud Audit Logs)."
-    mime_type = "text/markdown"
-  }
-
+  
   enabled = true
 }
 
