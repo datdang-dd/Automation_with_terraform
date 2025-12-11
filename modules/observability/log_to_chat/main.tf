@@ -42,7 +42,10 @@ resource "google_monitoring_alert_policy" "audit_events_to_chat" {
 
     condition_threshold {
       # metric.type = logging.googleapis.com/user/<metric_name>
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\""
+      filter = <<EOT
+metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}"
+AND resource.type="global"
+EOT
 
       aggregations {
         alignment_period   = "60s"
