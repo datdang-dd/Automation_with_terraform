@@ -124,7 +124,7 @@ module "audit_log_to_chat" {
   )
   AND operation.last = true
   EOT  
-  chat_webhook_url = var.chat_webhook_url
+  chat_webhook_url = "https://chat.googleapis.com/v1/spaces/AAQAGKxqmro/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=3GAX29aYu5cZ_CAhSq3EOxRke1jgBHGEGg2iSgtSbmc"
 }
 
 
