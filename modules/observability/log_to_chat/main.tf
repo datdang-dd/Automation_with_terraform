@@ -195,36 +195,6 @@ conditions {
 }
 
 
-resource "google_monitoring_alert_policy" "audit_compute2_alerts" {
-  project      = var.project_id
-  display_name = "Audit: VM & Service changes → Google Chat"
-  
-  # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
-  combiner     = "OR" 
-
-conditions {
-    display_name = "bigquery_resource"
-    condition_threshold {
-      # Gom nhóm Database, IAM và API
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"bigquery_resource\""
-
-      
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
-      duration = "0s"
-      trigger { count = 1 }
-    }
-  }
-  notification_channels = [
-    google_monitoring_notification_channel.chat.id
-  ]
-}
-
-
 resource "google_monitoring_alert_policy" "audit_compute3_alerts" {
   project      = var.project_id
   display_name = "Audit: VM & Service changes → Google Chat"
@@ -266,23 +236,7 @@ conditions {
       trigger { count = 1 }
     }
   }
-  conditions {
-    display_name = "aiplatform_job"
-    condition_threshold {
-      # Gom nhóm Database, IAM và API
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"aiplatform_job\""
 
-      
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
-      duration = "0s"
-      trigger { count = 1 }
-    }
-  }
   conditions {
     display_name = "aiplatform_endpoint"
     condition_threshold {
