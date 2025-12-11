@@ -48,11 +48,11 @@ resource "google_pubsub_topic" "logs_topic" {
 
 # ---------- Logging sink -> Pub/Sub ----------
 resource "google_logging_project_sink" "logs_sink" {
-  project                 = var.project_id
-  name                    = "ai-log-errors-sink"
-  destination             = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
-  filter                  = var.log_filter
-  unique_writer_identity  = true
+  project                = var.project_id
+  name                   = "ai-log-audit-sink"
+  destination            = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
+  filter                 = var.log_filter
+  unique_writer_identity = true
 }
 
 # Grant sink writer SA permission to publish to topic
