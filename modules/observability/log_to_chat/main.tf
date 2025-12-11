@@ -25,10 +25,10 @@ resource "google_logging_metric" "audit_events_metric" {
 resource "google_monitoring_notification_channel" "chat" {
   project      = var.project_id
   display_name = "Google Chat – Audit Alerts"
-  type         = "webhook"
+  type         = "google_chat"
 
   labels = {
-    url = "https://chat.googleapis.com/v1/spaces/AAQAGKxqmro/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=3GAX29aYu5cZ_CAhSq3EOxRke1jgBHGEGg2iSgtSbmc"
+    space = "spaces/AAQAGKxqmro"
   }
 }
 
