@@ -108,8 +108,6 @@ module "ai_log_alerts" {
   # Create a webhook in your Google Chat space and paste here
   chat_webhook_url = "https://chat.googleapis.com/v1/spaces/AAQAGKxqmro/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=3GAX29aYu5cZ_CAhSq3EOxRke1jgBHGEGg2iSgtSbmc"
 
-  # Optional: you can include WARNING too
-  log_filter = "textPayload=\"TEST_GEMINI_ALERT\""
 }
 
 
