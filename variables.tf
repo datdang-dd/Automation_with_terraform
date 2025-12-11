@@ -109,10 +109,6 @@ variable "uploader_service_account"{
   default     = ""
 }
 
-variable "log_filter" {
-  type = string
-  description = "filter logging"
-}
 variable "chat_webhook_url" {
   type = string
   description = "Google Chat webhook for audit alerts"
