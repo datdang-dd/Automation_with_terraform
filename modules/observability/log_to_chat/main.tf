@@ -7,30 +7,26 @@ resource "google_logging_metric" "audit_events_metric" {
     logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
     AND operation.last = true
     AND (
-      # 1. Compute Engine (VM)
       protoPayload.methodName = "v1.compute.instances.insert" OR
       protoPayload.methodName = "beta.compute.instances.insert" OR
-
-      # 2. Network (VPC, Subnet, Firewall)
-      protoPayload.methodName = "v1.compute.networks.insert" OR
-      protoPayload.methodName = "v1.compute.subnetworks.insert" OR
-      protoPayload.methodName = "v1.compute.firewalls.insert" OR
-
-      # 3. Database (Cloud SQL)
+      
       protoPayload.methodName = "cloud.sql.v1beta4.SqlInstancesService.Insert" OR
-
-      # 4. Kubernetes (GKE Cluster)
+      
       protoPayload.methodName = "google.container.v1.ClusterManager.CreateCluster" OR
-
-      # 5. Storage (GCS Bucket)
+      
       protoPayload.methodName = "storage.buckets.create" OR
-
-      # 6. IAM & Security (Service Account, Keys, Roles)
-      protoPayload.methodName = "SetIamPolicy" OR
-      protoPayload.methodName = "google.iam.admin.v1.CreateServiceAccountKey" OR
-
-      # 7. Service Management (Enable/Disable API)
-      protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService"
+      
+      protoPayload.methodName = "google.cloud.run.v2.Services.CreateService" OR
+      
+      protoPayload.methodName = "google.cloud.bigquery.v2.TableService.InsertTable" OR
+      protoPayload.methodName = "google.cloud.bigquery.v2.DatasetService.InsertDataset" OR
+      
+      protoPayload.methodName = "google.cloud.aiplatform.v1.EndpointService.CreateEndpoint" OR
+      protoPayload.methodName = "google.cloud.aiplatform.v1.JobService.CreateCustomJob" OR
+      protoPayload.methodName = "google.cloud.aiplatform.v1.ModelService.UploadModel" OR
+      protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
+      protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService" OR
+      protoPayload.methodName = "v1.compute.networks.insert" 
     )
   EOT
 
@@ -59,19 +55,44 @@ resource "google_monitoring_alert_policy" "audit_events_to_chat" {
   # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
   combiner     = "OR" 
 
-  # --- CONDITION 1: INFRASTRUCTURE (VM, Network, GKE, Storage) ---
+  # --- CONDITION 1: Compute/App Created (VM, GKE, Cloud Run) ---
   conditions {
-    display_name = "Infrastructure Change (VM/Net/GKE/Storage)"
+    display_name = "Compute/App Created (VM, GKE, Cloud Run)"
     condition_threshold {
       # Gom nhóm các resource type vật lý
       filter = <<EOT
         metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}" AND 
         (
           resource.type = "gce_instance" OR 
-          resource.type = "gce_subnetwork" OR 
-          resource.type = "gce_network" OR 
-          resource.type = "gce_firewall_rule" OR 
           resource.type = "gke_cluster" OR 
+          resource.type = "cloud_run_service" OR
+          resource.type = "cloud_run_revision" OR
+          resource.type = "gce_network"
+        )
+      EOT
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+
+  # --- CONDITION 2: Data/Storage Created (SQL, BQ, GCS) ---
+  conditions {
+    display_name = "Data/Storage Created (SQL, BQ, GCS)"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = <<EOT
+        metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}" AND 
+        (
+          resource.type = "cloudsql_database" OR 
+          resource.type = "bigquery_dataset" OR 
+          resource.type = "bigquery_resource" OR 
           resource.type = "gcs_bucket"
         )
       EOT
@@ -87,17 +108,16 @@ resource "google_monitoring_alert_policy" "audit_events_to_chat" {
     }
   }
 
-  # --- CONDITION 2: SECURITY & SERVICES (IAM, SQL, API) ---
+# --- CONDITION 3: VERTEX AI & OTHERS ---
   conditions {
-    display_name = "Security/Data/Service Change"
+    display_name = "Vertex AI / Other API"
     condition_threshold {
       # Gom nhóm Database, IAM và API
       filter = <<EOT
         metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}" AND 
         (
-          resource.type = "cloudsql_database" OR 
-          resource.type = "service_account" OR 
-          resource.type = "project" OR 
+          resource.type = "aiplatform_endpoint" OR 
+          resource.type = "aiplatform_job" OR
           resource.type = "audited_resource"
         )
       EOT
