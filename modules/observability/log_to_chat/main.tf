@@ -73,42 +73,6 @@ conditions {
     }
   }
 
-conditions {
-    display_name = "cloud_run_service"
-    condition_threshold {
-      # Gom nhóm các resource type vật lý
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"cloud_run_service\""
-
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
-      duration = "0s"
-      trigger { count = 1 }
-    }
-  }
-  conditions {
-    display_name = "Cloud_run_revision"
-    condition_threshold {
-      # Gom nhóm các resource type vật lý
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"cloud_run_revision\""
-      
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
-      duration = "0s"
-      trigger { count = 1 }
-    }
-  }
-  
-
-
-
   notification_channels = [
     google_monitoring_notification_channel.chat.id
   ]
@@ -220,23 +184,6 @@ conditions {
     }
   }
 
-  conditions {
-    display_name = "aiplatform_endpoint"
-    condition_threshold {
-      # Gom nhóm Database, IAM và API
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"aiplatform_endpoint\""
-
-      
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
-      duration = "0s"
-      trigger { count = 1 }
-    }
-  }
   notification_channels = [
     google_monitoring_notification_channel.chat.id
   ]
