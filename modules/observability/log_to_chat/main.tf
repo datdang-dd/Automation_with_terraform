@@ -56,23 +56,6 @@ resource "google_monitoring_alert_policy" "audit_computer_alerts" {
   combiner     = "OR" 
   
 
-  conditions {
-    display_name = "gke_cluster"
-    condition_threshold {
-      # Gom nhóm các resource type vật lý
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"gke_cluster\""
-
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
-      duration = "0s"
-      trigger { count = 1 }
-    }
-  }
-
 conditions {
     display_name = "gce_instance"
     condition_threshold {
