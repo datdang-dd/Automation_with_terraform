@@ -54,105 +54,211 @@ resource "google_monitoring_alert_policy" "audit_events_to_chat" {
   
   # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
   combiner     = "OR" 
+  
+
   conditions {
-    display_name = "Any Critical Resource Created/Enabled"
-    
+    display_name = "gke_cluster"
     condition_threshold {
-      # --- FIX LỖI Ở ĐÂY ---
-      # Thay vì liệt kê OR, ta dùng phủ định để lấy TẤT CẢ resource type có trong Metric.
-      # "aws_ec2_instance" là resource của AWS, không bao giờ có trên GCP, 
-      # nên điều kiện này luôn đúng cho mọi resource GCP (VM, SQL, GKE...).
-      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type != \"aws_ec2_instance\""
+      # Gom nhóm các resource type vật lý
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"gke_cluster\""
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+
+conditions {
+    display_name = "gce_instance"
+    condition_threshold {
+      # Gom nhóm các resource type vật lý
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"gce_instance\""
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+
+conditions {
+    display_name = "cloud_run_service"
+    condition_threshold {
+      # Gom nhóm các resource type vật lý
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"cloud_run_service\""
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+  conditions {
+    display_name = "Cloud_run_revision"
+    condition_threshold {
+      # Gom nhóm các resource type vật lý
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"cloud_run_revision\""
       
       aggregations {
         alignment_period   = "60s"
         per_series_aligner = "ALIGN_DELTA"
       }
-      
-      comparison      = "COMPARISON_GT"
+      comparison = "COMPARISON_GT"
       threshold_value = 0
-      duration        = "0s"
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+  conditions {
+    display_name = "gce_network"
+    condition_threshold {
+      # Gom nhóm các resource type vật lý
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"gce_network\"" 
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+  conditions {
+    display_name = "cloudsql_database"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"cloudsql_database\""
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
       trigger { count = 1 }
     }
   }
 
-#   # --- CONDITION 1: Compute/App Created (VM, GKE, Cloud Run) ---
-#   conditions {
-#     display_name = "Compute/App Created (VM, GKE, Cloud Run)"
-#     condition_threshold {
-#       # Gom nhóm các resource type vật lý
-#       filter = <<EOT
-#         metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}" AND 
-#         (
-#           resource.type = "gce_instance" OR 
-#           resource.type = "gke_cluster" OR 
-#           resource.type = "cloud_run_service" OR
-#           resource.type = "cloud_run_revision" OR
-#           resource.type = "gce_network"
-#         )
-#       EOT
-      
-#       aggregations {
-#         alignment_period   = "60s"
-#         per_series_aligner = "ALIGN_DELTA"
-#       }
-#       comparison = "COMPARISON_GT"
-#       threshold_value = 0
-#       duration = "0s"
-#       trigger { count = 1 }
-#     }
-#   }
+conditions {
+    display_name = "bigquery_dataset"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"bigquery_dataset\""
 
-#   # --- CONDITION 2: Data/Storage Created (SQL, BQ, GCS) ---
-#   conditions {
-#     display_name = "Data/Storage Created (SQL, BQ, GCS)"
-#     condition_threshold {
-#       # Gom nhóm Database, IAM và API
-#       filter = <<EOT
-#         metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}" AND 
-#         (
-#           resource.type = "cloudsql_database" OR 
-#           resource.type = "bigquery_dataset" OR 
-#           resource.type = "bigquery_resource" OR 
-#           resource.type = "gcs_bucket"
-#         )
-#       EOT
-      
-#       aggregations {
-#         alignment_period   = "60s"
-#         per_series_aligner = "ALIGN_DELTA"
-#       }
-#       comparison = "COMPARISON_GT"
-#       threshold_value = 0
-#       duration = "0s"
-#       trigger { count = 1 }
-#     }
-#   }
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
 
-# # --- CONDITION 3: VERTEX AI & OTHERS ---
-#   conditions {
-#     display_name = "Vertex AI / Other API"
-#     condition_threshold {
-#       # Gom nhóm Database, IAM và API
-#       filter = <<EOT
-#         metric.type="logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}" AND 
-#         (
-#           resource.type = "aiplatform_endpoint" OR 
-#           resource.type = "aiplatform_job" OR
-#           resource.type = "audited_resource"
-#         )
-#       EOT
+conditions {
+    display_name = "bigquery_resource"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"bigquery_resource\""
+
       
-#       aggregations {
-#         alignment_period   = "60s"
-#         per_series_aligner = "ALIGN_DELTA"
-#       }
-#       comparison = "COMPARISON_GT"
-#       threshold_value = 0
-#       duration = "0s"
-#       trigger { count = 1 }
-#     }
-#   }
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+
+conditions {
+    display_name = "gcs_bucket"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"gcs_bucket\""
+
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+
+conditions {
+    display_name = "audited_resource"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"audited_resource\""
+
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+  conditions {
+    display_name = "aiplatform_job"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"aiplatform_job\""
+
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
+  conditions {
+    display_name = "aiplatform_endpoint"
+    condition_threshold {
+      # Gom nhóm Database, IAM và API
+      filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.audit_events_metric.name}\" AND resource.type=\"aiplatform_endpoint\""
+
+      
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      comparison = "COMPARISON_GT"
+      threshold_value = 0
+      duration = "0s"
+      trigger { count = 1 }
+    }
+  }
 
   notification_channels = [
     google_monitoring_notification_channel.chat.id
