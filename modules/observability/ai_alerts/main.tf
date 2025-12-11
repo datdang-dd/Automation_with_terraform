@@ -133,19 +133,19 @@ resource "google_cloud_run_service_iam_member" "invoker" {
 }
 
 # ---------- Pub/Sub push subscription -> Cloud Run ----------
-resource "google_pubsub_subscription" "logs_push_sub" {
-  project = var.project_id
-  name    = "ai-log-errors-push-sub"
-  topic   = google_pubsub_topic.logs_topic.name
+# resource "google_pubsub_subscription" "logs_push_sub" {
+#   project = var.project_id
+#   name    = "ai-log-errors-push-sub"
+#   topic   = google_pubsub_topic.logs_topic.name
 
-  push_config {
-    push_endpoint = google_cloud_run_service.ai_service.status[0].url
+#   push_config {
+#     push_endpoint = google_cloud_run_service.ai_service.status[0].url
 
-    oidc_token {
-      service_account_email = google_service_account.ai_sa.email
-      audience              = google_cloud_run_service.ai_service.status[0].url
-    }
-  }
+#     oidc_token {
+#       service_account_email = google_service_account.ai_sa.email
+#       audience              = google_cloud_run_service.ai_service.status[0].url
+#     }
+#   }
 
-  depends_on = [google_cloud_run_service.ai_service]
-}
+#   depends_on = [google_cloud_run_service.ai_service]
+# }
