@@ -5,12 +5,12 @@ resource "google_logging_metric" "audit_events_metric" {
   # dùng đúng filter bạn đã định nghĩa
   filter = <<EOT
     logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
-    AND operation.last = true
+    AND operation.last = false
     AND (
       protoPayload.methodName = "v1.compute.instances.insert" OR
       protoPayload.methodName = "beta.compute.instances.insert" OR
       
-      protoPayload.methodName = "cloud.sql.v1beta4.SqlInstancesService.Insert" OR
+      protoPayload.methodName = "cloudsql.instances.create" OR
       
       protoPayload.methodName = "google.container.v1.ClusterManager.CreateCluster" OR
       
