@@ -13,12 +13,12 @@ variable "service_account"      { type = string }
 variable "size_min" { 
   description = "Minimum number of instances in the Managed Instance Group"
   type        = number
-  default     = 1
+  default     = 2
 }
 variable "size_max" { 
   description = "Maximum number of instances in the Managed Instance Group"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "grafana_admin_user" {
