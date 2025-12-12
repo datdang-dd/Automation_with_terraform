@@ -5,7 +5,6 @@ resource "google_logging_metric" "audit_events_metric" {
   # dùng đúng filter bạn đã định nghĩa
   filter = <<EOT
     logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
-    AND operation.last = false
     AND (
       protoPayload.methodName = "v1.compute.instances.insert" OR
       protoPayload.methodName = "beta.compute.instances.insert" OR
@@ -83,7 +82,7 @@ conditions {
 
 resource "google_monitoring_alert_policy" "audit_compute1_alerts" {
   project      = var.project_id
-  display_name = "Audit: VM & Service changes → Google Chat"
+  display_name = "Audit1: VM & Service changes → Google Chat"
   
   # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
   combiner     = "OR" 
@@ -146,7 +145,7 @@ conditions {
 
 resource "google_monitoring_alert_policy" "audit_compute3_alerts" {
   project      = var.project_id
-  display_name = "Audit: VM & Service changes → Google Chat"
+  display_name = "Audit3: VM & Service changes → Google Chat"
   
   # Quan trọng: Kết hợp 2 điều kiện bằng OR (VM hoặc Service đều báo)
   combiner     = "OR" 
