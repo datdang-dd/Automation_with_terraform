@@ -109,8 +109,8 @@ variable "uploader_service_account"{
   default     = ""
 }
 
-variable "chat_webhook_url" {
-  type = string
-  description = "Google Chat webhook for audit alerts"
-  default = ""
-}
+# variable "chat_webhook_url" {
+#   type = string
+#   description = "Google Chat webhook for audit alerts"
+#   default = ""
+# }
