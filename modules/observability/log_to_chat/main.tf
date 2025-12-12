@@ -140,6 +140,7 @@ conditions {
   notification_channels = [
     google_monitoring_notification_channel.chat.id
   ]
+  enabled = true
 }
 
 
@@ -188,4 +189,5 @@ conditions {
   notification_channels = [
     google_monitoring_notification_channel.chat.id
   ]
+  enabled = true
 }
