@@ -66,6 +66,9 @@ resource "google_monitoring_alert_policy" "master_audit_alert" {
 
   # Cấu hình auto_close để dọn dẹp dashboard sau 30p
   alert_strategy {
+    notification_rate_limit {
+      period = "300s" # Tối thiểu 5 phút
+    }
     auto_close = "1800s"
   }
 
