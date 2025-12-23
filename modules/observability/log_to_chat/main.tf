@@ -20,25 +20,38 @@ resource "google_monitoring_alert_policy" "master_audit_alert" {
     display_name = "Match Critical Audit Logs"
     condition_matched_log {
       filter = <<EOT
-        logName="projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
+        (logName="projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity" OR logName="projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Fsystem_event")
         AND (
           (
-            operation.last = true
+            (operation.last=true OR NOT operation.id:*)
             AND (
               (resource.type="gce_instance" AND (protoPayload.methodName="v1.compute.instances.insert" OR protoPayload.methodName="beta.compute.instances.insert"))
+              
+              OR
+              (resource.type="gce_firewall_rule" AND (protoPayload.methodName="beta.compute.firewalls.insert" OR protoPayload.methodName="v1.compute.firewalls.insert"))
+              
+              OR
+              (resource.type="gce_disk" AND protoPayload.methodName:"compute.disks.insert")
+              
+              OR
+              (resource.type="gce_snapshot" AND protoPayload.methodName:"compute.snapshots.insert")
+              
+              OR
+              (resource.type="gce_disk" AND protoPayload.methodName="ScheduledSnapshots" AND protoPayload.response.operationType="createSnapshot")
+              
               OR
               (resource.type="gce_network" AND (protoPayload.methodName="v1.compute.networks.insert" OR protoPayload.methodName="beta.compute.networks.insert"))
+              
               OR
               (resource.type="gke_cluster" AND protoPayload.methodName="google.container.v1.ClusterManager.CreateCluster")
               
               OR
-              
               (resource.type="cloudsql_database" AND (protoPayload.methodName="cloudsql.instances.create" OR protoPayload.methodName="cloud.sql.v1beta4.SqlInstancesService.Insert"))
+              
               OR
               (resource.type="gcs_bucket" AND protoPayload.methodName="storage.buckets.create")
               
               OR
-
               (resource.type="audited_resource" AND (
                 protoPayload.methodName="google.api.serviceusage.v1.ServiceUsage.EnableService" OR
                 protoPayload.methodName="google.cloud.run.v2.Services.CreateService"
@@ -58,6 +71,19 @@ resource "google_monitoring_alert_policy" "master_audit_alert" {
                protoPayload.methodName="google.cloud.aiplatform.v1.EndpointService.CreateEndpoint" OR
                protoPayload.methodName="google.cloud.aiplatform.v1.JobService.CreateCustomJob"
             ))
+
+            OR
+            (resource.type="cloud_dataproc_cluster" AND jsonPayload.class:"org.apache.hadoop.mapreduce" )
+            
+            OR
+            ((resource.type="cloud_run_job" OR resource.type="cloud_run_revision" OR resource.type="audited_resource") AND 
+            (protoPayload.methodName="google.cloud.run.v2.Services.CreateService" OR protoPayload.methodName="google.cloud.run.v2.Services.UpdateService"))
+            
+            OR
+            (resource.type="service_account" AND protoPayload.methodName="google.iam.admin.v1.CreateServiceAccount")
+            
+            OR
+            (resource.type="service_account" AND protoPayload.methodName="google.iam.admin.v1.CreateServiceAccountKey")
           )
         )
       EOT
