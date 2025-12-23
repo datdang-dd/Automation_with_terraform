@@ -38,7 +38,6 @@ module "network" {
 # 2) Security (Service Account + minimal IAM)
 module "security" {
   source    = "./modules/security"
-
   project_id = var.project_id
   sa_id      = "sa-web"
   sa_roles   = [
