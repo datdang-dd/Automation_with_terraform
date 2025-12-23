@@ -41,28 +41,28 @@ resource "google_project_iam_member" "ai_sa_pubsub" {
 # resource "google_project_iam_member" "ai_sa_secrets" { ... }
 
 # ---------- Pub/Sub topic for logs ----------
-# resource "google_pubsub_topic" "logs_topic" {
-#   project = var.project_id
-#   name    = "ai-log-errors-topic"
-# }
+resource "google_pubsub_topic" "logs_topic" {
+  project = var.project_id
+  name    = "ai-log-errors-topic"
+}
 
 # ---------- Logging sink -> Pub/Sub ----------
-# resource "google_logging_project_sink" "logs_sink" {
-#   project                = var.project_id
-#   name                   = "ai-log-audit-sink"
-#   destination            = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
-#   filter                 = <<EOT
-#   logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
-#   AND (
-#     protoPayload.methodName = "v1.compute.instances.insert" OR
-#     protoPayload.methodName = "beta.compute.instances.insert" OR
-#     protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
-#     protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService"
-#   )
-#   AND operation.last = true
-#   EOT
-#   unique_writer_identity = true
-# }
+resource "google_logging_project_sink" "logs_sink" {
+  project                = var.project_id
+  name                   = "ai-log-audit-sink"
+  destination            = "pubsub.googleapis.com/${google_pubsub_topic.logs_topic.id}"
+  filter                 = <<EOT
+  logName = "projects/${var.project_id}/logs/cloudaudit.googleapis.com%2Factivity"
+  AND (
+    protoPayload.methodName = "v1.compute.instances.insert" OR
+    protoPayload.methodName = "beta.compute.instances.insert" OR
+    protoPayload.methodName = "google.api.serviceusage.v1.ServiceUsage.EnableService" OR
+    protoPayload.methodName = "google.api.servicemanagement.v1.ServiceManager.EnableService"
+  )
+  AND operation.last = true
+  EOT
+  unique_writer_identity = true
+}
 
 # Grant sink writer SA permission to publish to topic
 resource "google_pubsub_topic_iam_member" "logs_sink_publisher" {
@@ -81,46 +81,46 @@ resource "google_project_service" "run_api" {
 }
 
 # ---------- Cloud Run service ----------
-# resource "google_cloud_run_service" "ai_service" {
-#   name     = local.service_name
-#   project  = var.project_id
-#   location = var.region
+resource "google_cloud_run_service" "ai_service" {
+  name     = local.service_name
+  project  = var.project_id
+  location = var.region
 
-#   template {
-#     spec {
-#       service_account_name = google_service_account.ai_sa.email
+  template {
+    spec {
+      service_account_name = google_service_account.ai_sa.email
 
-#       containers {
-#         image = var.ai_service_image
+      containers {
+        image = var.ai_service_image
 
-#         env {
-#           name  = "PROJECT_ID"
-#           value = var.project_id
-#         }
+        env {
+          name  = "PROJECT_ID"
+          value = var.project_id
+        }
 
-#         env {
-#           name  = "LOCATION"
-#           value = var.region
-#         }
+        env {
+          name  = "LOCATION"
+          value = var.region
+        }
 
-#         env {
-#           name  = "CHAT_WEBHOOK_URL"
-#           value = var.chat_webhook_url
-#         }
+        env {
+          name  = "CHAT_WEBHOOK_URL"
+          value = var.chat_webhook_url
+        }
 
-#         env {
-#           name  = "MODEL_NAME"
-#           value = "gemini-2.5-flash"
-#         }
-#       }
-#     }
-#   }
+        env {
+          name  = "MODEL_NAME"
+          value = "gemini-2.5-flash"
+        }
+      }
+    }
+  }
 
-#   traffic {
-#     percent         = 100
-#     latest_revision = true
-#   }
-# }
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+}
 
 # Only allow authenticated invocations
 resource "google_cloud_run_service_iam_member" "invoker" {

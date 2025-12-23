@@ -38,7 +38,6 @@ module "network" {
 # 2) Security (Service Account + minimal IAM)
 module "security" {
   source    = "./modules/security"
-
   project_id = var.project_id
   sa_id      = "sa-web"
   sa_roles   = [
@@ -103,10 +102,10 @@ module "ai_log_alerts" {
 
   project_id       = "ardent-disk-474504-c0"
   region           = "us-central1"
-  # ai_service_image = "us-central1-docker.pkg.dev/ardent-disk-474504-c0/ai-logs/ai-log-analyzer:fix1"
+  ai_service_image = "us-central1-docker.pkg.dev/ardent-disk-474504-c0/ai-logs/ai-log-analyzer:fix1"
 
-  # # Create a webhook in your Google Chat space and paste here
-  # chat_webhook_url = "https://chat.googleapis.com/v1/spaces/AAQAGKxqmro/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=3GAX29aYu5cZ_CAhSq3EOxRke1jgBHGEGg2iSgtSbmc"
+  # Create a webhook in your Google Chat space and paste here
+  chat_webhook_url = "https://chat.googleapis.com/v1/spaces/AAQAGKxqmro/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=3GAX29aYu5cZ_CAhSq3EOxRke1jgBHGEGg2iSgtSbmc"
 
 }
 
