@@ -274,7 +274,7 @@ resource "google_monitoring_alert_policy" "master_audit_alert_delete" {
 # ==============================================================================
 # 3. TẠO METRIC (Cập nhật label để khớp với JSON của bạn)
 # ==============================================================================
-resource "google_logging_metric" "resource_creation_metric" {
+resource "google_logging_metric" "resource_deteted_metric" {
   project = var.project_id
   # Tên metric này sẽ khớp với phần "logging.googleapis.com/user/..." trong JSON
   name    = "report-for-delete-resources" 
@@ -314,7 +314,7 @@ resource "google_logging_metric" "resource_creation_metric" {
 # ==============================================================================
 # 4. TẠO DASHBOARD (Sử dụng chính xác JSON bạn cung cấp)
 # ==============================================================================
-resource "google_monitoring_dashboard" "resource_report_dashboard" {
+resource "google_monitoring_dashboard" "resource_report_dashboard_for_delete" {
   project        = var.project_id
   # Sử dụng heredoc syntax (<<EOF) để paste JSON vào dễ dàng
   dashboard_json = <<EOF
