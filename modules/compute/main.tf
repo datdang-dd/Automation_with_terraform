@@ -128,7 +128,9 @@ resource "google_compute_instance" "bastion" {
 
   network_interface {
     subnetwork   = var.subnetwork_self_link
-    access_config {}
+    access_config {
+      network_tier = "STANDARD"
+    }
   }
 
 service_account {
