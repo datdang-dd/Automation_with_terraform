@@ -330,7 +330,7 @@ resource "google_monitoring_dashboard" "resource_report_dashboard_for_delete" {
             {
               "timeSeriesQuery": {
                 "timeSeriesFilter": {
-                  "filter": "metric.type=\"logging.googleapis.com/user/${google_logging_metric.resource_creation_metric.name}\"",
+                  "filter": "metric.type=\"logging.googleapis.com/user/${google_logging_metric.resource_deteted_metric}\"",
                   "aggregation": {
                     "perSeriesAligner": "ALIGN_SUM",
                     "crossSeriesReducer": "REDUCE_SUM",
